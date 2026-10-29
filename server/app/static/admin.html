@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CYD Hub</title>
+<style>
+:root { --bg: #0d1016; --panel: #161b24; --panel2: #212836; --line: #2a3242; --text: #e9ecf3; --dim: #8b94a7;
+  --green: #3ecf8e; --red: #ef5b5b; --blue: #5aa2ff; --yellow: #f5b942; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 Inter, system-ui, sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 20px 16px 60px; display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+@media (max-width: 820px) { main { grid-template-columns: 1fr; } }
+h1 { font-size: 20px; margin: 0 0 4px; } h2 { font-size: 15px; margin: 0 0 10px; }
+.sub { color: var(--dim); font-size: 13px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+label { display: block; font-size: 12px; color: var(--dim); margin: 8px 0 3px; }
+input, textarea, select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line);
+  border-radius: 8px; padding: 7px 9px; font: inherit; }
+textarea { font: 12px/1.35 ui-monospace, monospace; min-height: 70px; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0 10px; }
+.check { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: var(--text); font-size: 13px; }
+.check input { width: auto; }
+button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+  padding: 7px 12px; font: inherit; cursor: pointer; }
+button.primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+button.danger { color: var(--red); }
+.srv { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+.srv-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cmd { display: grid; grid-template-columns: 130px 1fr auto auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+.cmd input[type=checkbox] { width: auto; }
+.preview { position: sticky; top: 20px; }
+.screen { width: 320px; height: 240px; border-radius: 6px; border: 8px solid #2b2b2b; box-sizing: content-box;
+  background: #000; image-rendering: pixelated; display: block; }
+code { background: var(--bg); padding: 2px 6px; border-radius: 5px; font-size: 12px; word-break: break-all; }
+pre { background: var(--bg); padding: 8px; border-radius: 8px; overflow-x: auto; font-size: 12px; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line);
+  padding: 10px 16px; display: flex; gap: 10px; justify-content: center; align-items: center; }
+.saved { color: var(--green); font-size: 13px; }
+.presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.preset { border: 2px solid var(--line); border-radius: 10px; padding: 8px; cursor: pointer; background: var(--bg); }
+.preset.on { border-color: var(--blue); }
+.preset b { display: block; font-size: 13px; margin-bottom: 6px; }
+.sw { display: flex; height: 16px; border-radius: 4px; overflow: hidden; }
+.sw i { flex: 1; }
+.colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px 12px; margin-top: 12px; }
+.color { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.color input { width: 34px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; }
+.icons { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.icons button { padding: 5px; line-height: 0; color: var(--dim); background: var(--bg); }
+.icons button.on { color: var(--text); border-color: var(--blue); background: var(--panel2); }
+.watch { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
+.watch .check { margin-top: 0; font-size: 12px; }
+.watch .check.off { color: var(--dim); }
+.color.changed span::after { content: " •"; color: var(--blue); }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <h1>CYD Hub</h1>
+    <div class="sub" style="margin-bottom:16px">Настольный экран: Claude Code, серверы, команды. Всё, что на экране, настраивается здесь.</div>
+
+    <section>
+      <h2>Стиль экрана</h2>
+      <div class="sub" style="margin-bottom:10px">Готовый стиль, потом любые цвета поверх. Превью справа меняется сразу, плата — через секунду.</div>
+      <div class="presets" id="presets"></div>
+      <div class="colors" id="colors"></div>
+      <div class="row" style="margin-top:6px">
+        <div><label>Шрифт</label><select id="font" onchange="theme.font=this.value;pushTheme()"></select></div>
+        <div><label>Скругление: <span id="radiusVal"></span></label><input id="radius" type="range" min="0" max="16" oninput="theme.radius=+this.value;pushTheme()"></div>
+      </div>
+      <div style="margin-top:10px"><button onclick="resetTheme()">Сбросить цвета к стилю</button></div>
+    </section>
+
+    <section>
+      <h2>Серверы</h2>
+      <div class="row" style="margin-bottom:12px">
+        <div><label>Вид страницы на экране</label><select id="servers_view" onchange="drawTiles()">
+          <option value="list">Список: статус и нагрузка</option><option value="tiles">Плитки: иконка и статус</option></select></div>
+        <div class="t-cols"><label>Плиток в ряд</label><select id="tiles_cols"><option value="0">Авто: все на один экран</option><option>3</option><option>4</option><option>5</option></select></div>
+      </div>
+      <div id="servers"></div>
+      <button onclick="addServer()">+ Добавить сервер</button>
+    </section>
+
+    <section>
+      <h2>Кнопки-команды (SSH, одни для всех серверов, до 6)</h2>
+      <div class="sub" style="margin-bottom:8px">«Подтверждать» — экран переспросит перед запуском.</div>
+      <div id="commands"></div>
+      <button onclick="addCmd()">+ Команда</button>
+    </section>
+
+    <section>
+      <h2>Проверки и экран</h2>
+      <div class="row">
+        <div><label>Проверять серверы, с</label><input id="check_interval" type="number" min="5"></div>
+        <div><label>Нагрузка по SSH, с</label><input id="stats_interval" type="number" min="10"></div>
+        <div><label>Неудач подряд до «лежит»</label><input id="fails_to_down" type="number" min="1"></div>
+        <div><label>Лимиты устаревают, мин</label><input id="usage_stale_min" type="number" min="1"></div>
+        <div><label>Приглушить без касаний, с (0 — нет)</label><input id="dim_after_s" type="number" min="0"></div>
+        <div><label>Погасить без касаний, с (0 — нет)</label><input id="off_after_s" type="number" min="0"></div>
+        <div><label>Экран по умолчанию</label><select id="default_view"><option value="claude">Claude</option><option value="servers">Серверы</option><option value="docker">Docker</option><option value="home">Сводка</option></select></div>
+        <div><label>Заставка через, с (0 — нет)</label><input id="saver_after_s" type="number" min="0"></div>
+        <div><label>Смена вкладок заставки, с</label><input id="saver_period_s" type="number" min="5"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="sound"> Звук на плате</label>
+    </section>
+
+    <section>
+      <h2>Яркость</h2>
+      <div class="row">
+        <div><label>Режим</label><select id="brightness_mode" onchange="drawBright()">
+          <option value="max">Всегда максимум</option><option value="schedule">Ночью тусклее</option><option value="auto">По датчику света</option></select></div>
+        <div><label>Тусклая яркость, %</label><input id="night_level" type="number" min="1" max="100"></div>
+        <div class="b-sched"><label>Ночь с</label><input id="night_from" type="time"></div>
+        <div class="b-sched"><label>Ночь до</label><input id="night_to" type="time"></div>
+        <div class="b-auto"><label>Датчик в темноте</label><input id="lux_dark" type="number"></div>
+        <div class="b-auto"><label>Датчик при свете</label><input id="lux_bright" type="number"></div>
+      </div>
+      <p class="sub b-auto">Датчик сейчас показывает <b id="luxNow">—</b>. Накройте плату рукой и запишите число в «в темноте», уберите руку — в «при свете».</p>
+    </section>
+
+    <section>
+      <h2>Сводка: погода, курсы, включение компьютеров</h2>
+      <div class="row">
+        <div><label>Город (подпись)</label><input id="city"></div>
+        <div><label>Широта</label><input id="lat" type="number" step="0.0001"></div>
+        <div><label>Долгота</label><input id="lon" type="number" step="0.0001"></div>
+        <div><label>Валюты ЦБ через запятую</label><input id="rates" placeholder="USD,EUR,CNY"></div>
+      </div>
+      <h2 style="margin-top:14px">Wake-on-LAN</h2>
+      <div class="sub" style="margin-bottom:6px">Кнопки «включить» на вкладке «Сводка». Пакет отправляется с выбранного сервера по SSH (он должен быть в той же сети).</div>
+      <div id="wol"></div>
+      <button onclick="cfg.wol.push({name:'',mac:'',via:''});draw()">+ Устройство</button>
+    </section>
+
+    <section>
+      <h2>Плата и прошивка</h2>
+      <p class="sub" id="boardInfo">—</p>
+      <p class="sub">Новая прошивка по Wi-Fi: выберите <code>.bin</code> (Arduino → «Экспорт бинарного файла», раздел «Minimal SPIFFS»). Плата скачает её сама и перезагрузится.</p>
+      <input type="file" id="fwFile" accept=".bin" style="width:auto"> <button onclick="uploadFw()">Загрузить</button>
+    </section>
+
+    <section>
+      <h2>Подключение</h2>
+      <p class="sub">Токен для платы и моста Claude Code: <code id="token"></code> <button onclick="regen()">Новый</button></p>
+      <p class="sub">Мост на компьютере с Claude Code:</p>
+      <pre id="bridgeCmd"></pre>
+      <p class="sub">Плата: при первом включении поднимает Wi-Fi «CYD-Setup» — подключитесь с телефона и укажите сеть, адрес <code id="hubUrl"></code> и токен.</p>
+    </section>
+  </div>
+
+  <div class="preview">
+    <h2>Экран сейчас</h2>
+    <img id="shot" class="screen" alt="">
+    <p class="sub">Кадр, который получает плата. <a href="/screen" target="_blank" style="color:var(--blue)">Открыть экран</a> — можно нажимать мышкой.</p>
+  </div>
+</main>
+<div class="bar"><span id="status" class="saved"></span><button class="primary" onclick="save()">Сохранить</button></div>
+
+<script src="/static/icons.js"></script>
+<script>
+let cfg = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function load() {
+  await loadLive();
+  cfg = await (await fetch("/api/config")).json();
+  draw();
+}
+function draw() {
+  $("servers").innerHTML = cfg.servers.map((s, i) => `
+    <div class="srv">
+      <div class="srv-head"><b style="display:flex;align-items:center;gap:6px">${serverIcon(s.icon, 18)}${esc(s.name || s.host || "Новый сервер")}</b><button class="danger" onclick="cfg.servers.splice(${i},1);draw()">Удалить</button></div>
+      <label>Иконка</label>
+      <div class="icons">${Object.entries(SERVER_ICONS).map(([k, [title]]) =>
+        `<button title="${title}" class="${(s.icon || "server") === k ? "on" : ""}" onclick="pickIcon(${i},'${k}',this)">${serverIcon(k, 20)}</button>`).join("")}</div>
+      <div class="row">
+        <div><label>Имя</label><input value="${esc(s.name)}" oninput="cfg.servers[${i}].name=this.value"></div>
+        <div><label>Адрес (IP или домен)</label><input value="${esc(s.host)}" oninput="cfg.servers[${i}].host=this.value"></div>
+        <div><label>TCP-порт (0 — нет)</label><input type="number" value="${s.tcp_port}" oninput="cfg.servers[${i}].tcp_port=this.value"></div>
+        <div><label>HTTP URL (пусто — нет)</label><input value="${esc(s.http_url)}" oninput="cfg.servers[${i}].http_url=this.value"></div>
+      </div>
+      <div class="row">
+        <div><label>SSH-порт (0 — нет)</label><input type="number" value="${s.ssh_port}" oninput="cfg.servers[${i}].ssh_port=this.value"></div>
+        <div><label>SSH-логин</label><input value="${esc(s.ssh_user)}" oninput="cfg.servers[${i}].ssh_user=this.value"></div>
+        <div><label>SSH-пароль ${s.ssh_password_set ? "(задан — пусто оставит)" : ""}</label><input type="password" autocomplete="new-password" oninput="cfg.servers[${i}].ssh_password=this.value"></div>
+      </div>
+      <label>Приватный SSH-ключ ${s.ssh_key_set ? "(задан — пусто оставит)" : "(вместо пароля)"}</label>
+      <textarea placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" oninput="cfg.servers[${i}].ssh_key=this.value"></textarea>
+      <label class="check"><input type="checkbox" ${s.ping ? "checked" : ""} onchange="cfg.servers[${i}].ping=this.checked"> Ping</label>
+      <label class="check"><input type="checkbox" ${s.stats ? "checked" : ""} onchange="cfg.servers[${i}].stats=this.checked"> CPU / RAM / диск по SSH</label>
+      <label class="check"><input type="checkbox" ${s.docker ? "checked" : ""} onchange="cfg.servers[${i}].docker=this.checked;draw()"> Контейнеры Docker (пользователю нужен доступ к docker)</label>
+      ${s.docker ? watchBox(s, i) : ""}
+      ${s.ssh_password_set || s.ssh_key_set ? `<label class="check"><input type="checkbox" onchange="cfg.servers[${i}].ssh_password_clear=cfg.servers[${i}].ssh_key_clear=this.checked"> Стереть сохранённые пароль и ключ</label>` : ""}
+    </div>`).join("");
+  $("commands").innerHTML = cfg.commands.map((c, i) => `
+    <div class="cmd"><input value="${esc(c.label)}" placeholder="Подпись" oninput="cfg.commands[${i}].label=this.value">
+      <input value="${esc(c.cmd)}" placeholder="команда" oninput="cfg.commands[${i}].cmd=this.value" style="font-family:monospace">
+      <label class="check" style="margin:0"><input type="checkbox" ${c.confirm ? "checked" : ""} onchange="cfg.commands[${i}].confirm=this.checked"> подтверждать</label>
+      <button class="danger" onclick="cfg.commands.splice(${i},1);draw()">×</button></div>`).join("");
+  for (const k of ["check_interval", "stats_interval", "fails_to_down", "usage_stale_min"]) $(k).value = cfg[k];
+  for (const k of SCREEN_KEYS) $(k).value = cfg.screen[k];
+  for (const k of DASH_KEYS) $(k).value = cfg.dashboard[k];
+  $("wol").innerHTML = cfg.wol.map((w, i) => `
+    <div class="cmd" style="grid-template-columns:1fr 160px 1fr auto"><input value="${esc(w.name)}" placeholder="Имя (Компьютер)" oninput="cfg.wol[${i}].name=this.value">
+      <input value="${esc(w.mac)}" placeholder="AA:BB:CC:DD:EE:FF" oninput="cfg.wol[${i}].mac=this.value" style="font-family:monospace">
+      <select onchange="cfg.wol[${i}].via=this.value"><option value="">через первый сервер с SSH</option>${cfg.servers.map(s => `<option value="${s.id}" ${s.id === w.via ? "selected" : ""}>через ${esc(s.name)}</option>`).join("")}</select>
+      <button class="danger" onclick="cfg.wol.splice(${i},1);draw()">×</button></div>`).join("");
+  drawBright();
+  drawTiles();
+  $("sound").checked = cfg.screen.sound;
+  $("token").textContent = cfg.token;
+  $("hubUrl").textContent = location.origin;
+  $("bridgeCmd").textContent = `python bridge/claude_cyd.py install --url ${location.origin} --token ${cfg.token}`;
+}
+// важные контейнеры: что сейчас есть на сервере (из /api/ui) + уже отмеченные
+let live = {};
+async function loadLive() {
+  try { for (const s of (await (await fetch("/api/ui")).json()).servers) live[s.id] = (s.containers || []).map(c => c.name); } catch (e) {}
+}
+function watchBox(s, i) {
+  const w = s.watch || [], names = [...new Set([...w, ...(live[s.id] || [])])].sort((a, b) => w.includes(b) - w.includes(a) || a.localeCompare(b));
+  return `<label>Важные контейнеры — на вкладке Docker ${names.length ? "" : "(список появится после первой проверки, или впишите имя)"}</label>
+    <div class="watch">${names.map(n => `<label class="check ${w.includes(n) ? "" : "off"}"><input type="checkbox" ${w.includes(n) ? "checked" : ""}
+      onchange='toggleWatch(${i}, ${esc(JSON.stringify(n))}, this)'> ${esc(n)}${live[s.id] && !live[s.id].includes(n) ? " (нет на сервере)" : ""}</label>`).join("")}</div>
+    <div style="display:flex;gap:6px;margin-top:6px;max-width:360px"><input placeholder="имя контейнера" id="wadd${i}">
+      <button onclick="const v=$('wadd${i}').value.trim(); if (v) { cfg.servers[${i}].watch=[...new Set([...(cfg.servers[${i}].watch||[]), v])]; draw(); }">Добавить</button></div>`;
+}
+function toggleWatch(i, n, box) {
+  const w = new Set(cfg.servers[i].watch || []);
+  box.checked ? w.add(n) : w.delete(n);
+  cfg.servers[i].watch = [...w];
+  box.parentElement.classList.toggle("off", !box.checked);
+}
+function addServer() {
+  cfg.servers.push({ name: "", host: "", icon: "server", watch: [], ping: true, tcp_port: 22, http_url: "", ssh_port: 22, ssh_user: "monitor", stats: true });
+  draw();
+}
+function addCmd() {
+  if (cfg.commands.length >= 6) return alert("Максимум 6 команд — столько помещается на экран");
+  cfg.commands.push({ label: "", cmd: "", confirm: false });
+  draw();
+}
+async function save() {
+  for (const k of ["check_interval", "stats_interval", "fails_to_down", "usage_stale_min"]) cfg[k] = +$(k).value;
+  cfg.screen = { sound: $("sound").checked };
+  for (const k of SCREEN_KEYS) cfg.screen[k] = $(k).type === "number" ? +$(k).value : $(k).value;
+  cfg.dashboard = {};
+  for (const k of DASH_KEYS) cfg.dashboard[k] = $(k).type === "number" ? +$(k).value : $(k).value;
+  const r = await fetch("/api/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg) });
+  if (!r.ok) { $("status").textContent = "Ошибка: " + r.status; return; }
+  cfg = await r.json();
+  draw();
+  $("status").textContent = "Сохранено";
+  setTimeout(() => $("status").textContent = "", 2500);
+}
+const SCREEN_KEYS = ["dim_after_s", "off_after_s", "default_view", "saver_after_s", "saver_period_s", "servers_view", "tiles_cols",
+  "brightness_mode", "night_level", "night_from", "night_to", "lux_dark", "lux_bright"];
+const DASH_KEYS = ["city", "lat", "lon", "rates"];
+// без draw(): он перерисовал бы и несохранённые поля ниже
+function pickIcon(i, k, btn) {
+  cfg.servers[i].icon = k;
+  btn.parentElement.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === btn));
+  btn.closest(".srv").querySelector(".srv-head svg").outerHTML = serverIcon(k, 18);
+}
+function drawTiles() {
+  document.querySelector(".t-cols").style.display = $("servers_view").value === "tiles" ? "" : "none";
+}
+function drawBright() {
+  const m = $("brightness_mode").value;
+  document.querySelectorAll(".b-sched").forEach(e => e.style.display = m === "schedule" ? "" : "none");
+  document.querySelectorAll(".b-auto").forEach(e => e.style.display = m === "auto" ? "" : "none");
+  $("night_level").parentElement.style.display = m === "max" ? "none" : "";
+}
+async function boardInfo() {
+  const b = await (await fetch("/api/board")).json();
+  const fw = b.firmware.md5 ? `загружена ${new Date(b.firmware.t * 1000).toLocaleString("ru-RU")}, ${(b.firmware.size / 1024).toFixed(0)} КБ` : "не загружалась";
+  const same = b.firmware.md5 && b.fw === b.firmware.md5;
+  $("boardInfo").innerHTML = `Плата: ${b.online ? `<b style="color:var(--green)">на связи</b> (${esc(b.ip)})` : `<b style="color:var(--red)">не на связи</b>`}
+    · яркость ${b.bright} · датчик света ${b.lux >= 0 ? b.lux : "—"}<br>Прошивка на сервере: ${fw}${b.firmware.md5 ? (same ? " — <b style='color:var(--green)'>стоит на плате</b>" : " — плата обновится") : ""}`;
+  $("luxNow").textContent = b.lux >= 0 ? b.lux : "—";
+}
+async function uploadFw() {
+  const f = $("fwFile").files[0];
+  if (!f) return alert("Выберите .bin");
+  const r = await fetch("/api/firmware", { method: "PUT", headers: { "X-Name": f.name }, body: f });
+  $("status").textContent = r.ok ? "Прошивка загружена, плата обновится сама" : "Ошибка: " + (await r.text());
+  boardInfo();
+}
+setInterval(boardInfo, 3000);
+boardInfo();
+async function regen() {
+  if (!confirm("Новый токен: плату и мост придётся перенастроить. Продолжить?")) return;
+  cfg.token = (await (await fetch("/api/token", { method: "POST" })).json()).token;
+  draw();
+}
+// ---- стиль экрана ----
+const COLOR_NAMES = { bg: "Фон", panel: "Карточки", panel2: "Кнопки", line: "Линии", text: "Текст",
+  dim: "Вторичный текст", faint: "Бледный текст", accent: "Акцент", green: "OK / зелёный",
+  yellow: "Внимание", red: "Ошибка", purple: "Разрешения" };
+let presets = {}, fonts = [], theme = {};
+async function loadThemes() {
+  const r = await (await fetch("/api/themes")).json();
+  presets = r.presets; fonts = r.fonts; theme = r.current;
+  $("font").innerHTML = fonts.map(f => `<option>${esc(f)}</option>`).join("");
+  drawTheme();
+}
+function themeColors() { return Object.assign({}, presets[theme.preset].colors, theme.colors || {}); }
+function drawTheme() {
+  $("presets").innerHTML = Object.entries(presets).map(([id, p]) => `
+    <div class="preset ${id === theme.preset ? "on" : ""}" onclick="pickPreset('${id}')" style="background:${p.colors.bg}">
+      <b style="color:${p.colors.text}">${esc(p.name)}</b>
+      <div class="sw">${["panel", "accent", "green", "yellow", "red", "purple"].map(k => `<i style="background:${p.colors[k]}"></i>`).join("")}</div>
+    </div>`).join("");
+  const c = themeColors(), own = theme.colors || {};
+  $("colors").innerHTML = Object.keys(COLOR_NAMES).map(k => `
+    <label class="color ${k in own ? "changed" : ""}"><input type="color" value="${c[k]}" oninput="setColor('${k}', this.value)"><span>${COLOR_NAMES[k]}</span></label>`).join("");
+  $("font").value = theme.font || presets[theme.preset].font;
+  const rad = theme.radius ?? presets[theme.preset].radius;
+  $("radius").value = rad; $("radiusVal").textContent = rad + " px";
+}
+function pickPreset(id) { theme = { preset: id }; drawTheme(); pushTheme(); }
+function setColor(k, v) {
+  theme.colors = theme.colors || {};
+  if (v.toLowerCase() === presets[theme.preset].colors[k].toLowerCase()) delete theme.colors[k];
+  else theme.colors[k] = v;
+  pushTheme(true);
+}
+function resetTheme() { theme = { preset: theme.preset }; drawTheme(); pushTheme(); }
+let themeTimer = null;
+function pushTheme(keepInputs) {
+  $("radiusVal").textContent = ($("radius").value) + " px";
+  if (!keepInputs) drawTheme();
+  clearTimeout(themeTimer);
+  themeTimer = setTimeout(async () => {
+    await fetch("/api/theme", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(theme) });
+    $("status").textContent = "Стиль сохранён"; setTimeout(() => $("status").textContent = "", 1500);
+  }, 250);
+}
+
+setInterval(() => $("shot").src = "/api/preview.png?" + Date.now(), 500);
+load();
+loadThemes();
+</script>
+</body>
+</html>

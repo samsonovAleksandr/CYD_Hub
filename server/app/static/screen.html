@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>CYD screen</title>
+<style>
+:root {
+  /* тема: значения подставляет applyTheme() из настроек сервера */
+  --bg: #0d1016; --panel: #161b24; --panel2: #212836; --line: #2a3242;
+  --text: #e9ecf3; --dim: #8b94a7; --faint: #5c6578;
+  --green: #3ecf8e; --yellow: #f5b942; --red: #ef5b5b; --accent: #5aa2ff; --purple: #a78bfa;
+  --blue: var(--accent); --radius: 9px; --r-small: min(var(--radius), 6px);
+  --font: Inter, "DejaVu Sans", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 320px; height: 240px; overflow: hidden; background: var(--bg); color: var(--text);
+  font: 12px/1.3 var(--font); -webkit-font-smoothing: antialiased; }
+#app { position: relative; width: 320px; height: 240px; }
+.dim { color: var(--dim); } .faint { color: var(--faint); }
+.green { color: var(--green); } .yellow { color: var(--yellow); } .red { color: var(--red); }
+.blue { color: var(--blue); } .purple { color: var(--purple); }
+.ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* шапка */
+.top { height: 26px; display: flex; align-items: center; padding: 0 8px; gap: 4px;
+  border-bottom: 1px solid var(--line); background: var(--panel); }
+.tab { white-space: nowrap; padding: 4px 7px; border-radius: var(--r-small); color: var(--dim); font-weight: 600; font-size: 12px; }
+.tab.on { color: var(--text); background: var(--panel2); }
+.icon.done svg path { stroke: var(--bg); }
+.tab .badge { display: inline-block; min-width: 14px; padding: 0 4px; margin-left: 4px; border-radius: 7px;
+  background: var(--red); color: #fff; font-size: 10px; text-align: center; }
+.clock { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+.back { display: flex; align-items: center; gap: 6px; font-weight: 600; padding-right: 10px; height: 100%; }
+.back svg { width: 12px; height: 12px; }
+.body { position: absolute; top: 26px; left: 0; right: 0; bottom: 0; overflow-y: auto; padding: 6px; }
+.body::-webkit-scrollbar { width: 3px; } .body::-webkit-scrollbar-thumb { background: var(--panel2); }
+
+/* лимиты */
+.gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.gauge { background: var(--panel); border-radius: var(--radius); padding: 6px 8px; display: flex; gap: 8px; align-items: center; }
+.ring { position: relative; width: 50px; height: 50px; flex: none; }
+.ring svg { width: 50px; height: 50px; transform: rotate(-90deg); }
+.ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; }
+.gauge .t { font-weight: 600; font-size: 12px; }
+.gauge .s { font-size: 10px; color: var(--dim); }
+.src { font-size: 10px; color: var(--faint); text-align: center; margin: 3px 0 5px; }
+
+/* карточки */
+.card { background: var(--panel); border-radius: var(--radius); padding: 6px 8px; margin-bottom: 5px;
+  display: flex; gap: 8px; align-items: center; }
+.card .main { flex: 1; min-width: 0; }
+.card .row { display: flex; gap: 6px; align-items: baseline; }
+.card .name { font-weight: 600; font-size: 12px; flex: 1; min-width: 0; }
+.card .meta { font-size: 10px; flex: none; }
+.card .sub { font-size: 10px; color: var(--dim); margin-top: 1px; }
+.chev { color: var(--faint); font-size: 14px; }
+.icon { width: 20px; height: 20px; flex: none; border-radius: 50%; display: grid; place-items: center; }
+.icon.working { border: 3px solid var(--panel2); border-top-color: var(--blue); animation: spin .8s linear infinite; }
+.icon.waiting { background: var(--yellow); color: var(--bg); font-weight: 800; }
+.icon.done { background: var(--green); }
+.icon.idle { border: 2px solid var(--faint); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { text-align: center; color: var(--dim); padding-top: 34px; }
+.empty b { display: block; color: var(--text); font-size: 14px; margin-bottom: 6px; }
+
+/* серверы */
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.bars { display: flex; gap: 8px; margin-top: 4px; }
+.bar { flex: 1; } .bar span { font-size: 9px; color: var(--dim); }
+.bar i { display: block; height: 4px; border-radius: 2px; background: var(--panel2); overflow: hidden; }
+.bar i em { display: block; height: 100%; }
+.spark { width: 64px; height: 22px; flex: none; }
+.tiles { display: grid; gap: 6px; justify-content: center; }
+.tile { min-width: 0; background: var(--panel); border-radius: var(--radius); position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--hc) 45%, transparent); }
+.tile.down { background: color-mix(in srgb, var(--red) 18%, var(--panel)); }
+.tile .ic { color: var(--hc); line-height: 0; }
+.tile .nm { font-weight: 600; max-width: 100%; text-align: center; }
+.tile .st { font-size: 9px; color: var(--hc); max-width: 100%; }
+.tile .dot { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; background: var(--hc); }
+
+/* текст */
+.sec { color: var(--blue); font-weight: 700; font-size: 11px; margin: 6px 0 2px; text-transform: uppercase; letter-spacing: .04em; }
+.txt { white-space: pre-wrap; word-wrap: break-word; font-size: 11px; line-height: 1.35; }
+.act { font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+pre.out { font: 10px/1.3 var(--mono, "DejaVu Sans Mono"), monospace; white-space: pre-wrap; word-break: break-all; }
+
+/* кнопки */
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 6px; }
+.btn { background: var(--panel2); border-radius: var(--radius); padding: 9px 4px; text-align: center; font-weight: 600; font-size: 11px; }
+.btn.danger { background: color-mix(in srgb, var(--red) 30%, var(--panel2)); } .btn.ok { background: var(--green); color: var(--bg); }
+.btn.no { background: var(--red); color: #fff; } .btn.small { padding: 4px 8px; display: inline-block; }
+
+/* окна поверх */
+.modal { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; }
+.perm-top { background: var(--purple); color: var(--bg); padding: 5px 8px; font-weight: 700;
+  display: flex; justify-content: space-between; align-items: center; }
+.perm-tool { padding: 6px 8px 2px; font-weight: 700; font-size: 14px; color: var(--yellow); }
+.perm-text { margin: 0 8px; padding: 6px; background: var(--panel); border-radius: var(--radius); flex: 1; overflow: hidden;
+  font: 10.5px/1.35 var(--mono, "DejaVu Sans Mono"), monospace; white-space: pre-wrap; word-break: break-all; }
+.timer { height: 3px; margin: 5px 8px; background: var(--panel2); border-radius: 2px; overflow: hidden; }
+.timer i { display: block; height: 100%; background: var(--purple); }
+.perm-btns { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 6px; padding: 0 8px 8px; }
+.perm-btns .btn { padding: 12px 4px; font-size: 12px; }
+.alert { position: absolute; top: 0; left: 0; right: 0; height: 26px; background: var(--red); display: flex;
+  align-items: center; padding: 0 8px; font-weight: 700; gap: 8px; z-index: 5; }
+.alert .btn { margin-left: auto; background: rgba(0,0,0,.25); padding: 3px 8px; }
+.confirm { position: absolute; inset: 26px 0 0; background: color-mix(in srgb, var(--bg) 94%, transparent); display: flex; flex-direction: column;
+  justify-content: center; align-items: center; gap: 8px; padding: 12px; text-align: center; }
+.confirm .row2 { display: flex; gap: 8px; width: 100%; } .confirm .btn { flex: 1; padding: 11px; }
+
+/* графики */
+.chart { background: var(--panel); border-radius: var(--radius); padding: 6px 8px; margin-bottom: 6px; }
+.chart .h { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+.chart svg { width: 100%; height: 56px; display: block; }
+.stat { font-size: 10px; color: var(--dim); text-align: center; margin: -2px 0 5px; }
+.minis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 6px; }
+.mini { background: var(--panel); border-radius: var(--r-small); padding: 4px 6px; }
+.mini span { font-size: 9px; color: var(--dim); } .mini svg { width: 100%; height: 22px; display: block; }
+
+/* контейнеры */
+.ctr { display: flex; align-items: center; gap: 7px; padding: 5px 8px; background: var(--panel); border-radius: var(--r-small); margin-bottom: 3px; }
+.ctr .name { flex: 1; min-width: 0; font-size: 11px; font-weight: 600; }
+.ctr .st { font-size: 9px; color: var(--dim); flex: none; max-width: 110px; }
+.mu { display: flex; gap: 10px; align-items: center; }
+.mu .cv { width: 96px; height: 96px; flex: none; border-radius: var(--radius); background: var(--panel2) center/cover; display: grid; place-items: center; color: var(--faint); }
+.mu .tt { font-size: 14px; font-weight: 700; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mu .ar { font-size: 12px; color: var(--dim); margin-top: 3px; }
+.mu .al { font-size: 10px; color: var(--faint); margin-top: 2px; }
+.mu .ap { display: inline-block; font-size: 9px; color: var(--dim); background: var(--panel2); border-radius: 6px; padding: 1px 6px; margin-top: 5px; }
+.mpr { margin: 10px 2px 0; } .mpr i { display: block; height: 4px; border-radius: 2px; background: var(--panel2); overflow: hidden; }
+.mpr i em { display: block; height: 100%; background: var(--accent); }
+.mpr div { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.mbt { display: flex; justify-content: center; align-items: center; gap: 22px; margin-top: 4px; }
+.mbt div { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); color: var(--text); }
+.mbt .pp { width: 54px; height: 54px; background: var(--accent); color: var(--bg); }
+.dk { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.dk > div { background: var(--panel); border-radius: var(--r-small); padding: 5px 7px; min-width: 0; border-left: 3px solid var(--hc); }
+.dk .bad { background: color-mix(in srgb, var(--red) 16%, var(--panel)); }
+.dk b { display: block; font-size: 11px; } .dk span { display: block; font-size: 9px; color: var(--dim); }
+.dk .srv { color: var(--hc); }
+
+/* сводка */
+.home-top { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 2px 4px; }
+.big-clock { font-size: 32px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.date { font-size: 11px; color: var(--dim); text-align: right; }
+.wx { display: flex; align-items: center; gap: 7px; background: var(--panel); border-radius: var(--radius); padding: 4px 8px; }
+.wx .temp { font-size: 20px; font-weight: 700; }
+.wx svg { width: 28px; height: 28px; flex: none; }
+.hours { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 5px; }
+.hour { background: var(--panel); border-radius: var(--r-small); text-align: center; padding: 2px 0; font-size: 10px; line-height: 1.15; }
+.hour svg { width: 14px; height: 14px; display: block; margin: 0 auto; }
+.rates { display: flex; gap: 5px; margin-top: 5px; }
+.rate { flex: 1; background: var(--panel); border-radius: var(--r-small); padding: 3px 6px; font-size: 10px;
+  display: flex; align-items: baseline; gap: 4px; }
+.rate b { font-size: 12px; }
+.wols { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.wols .btn { flex: 1; padding: 6px; }
+.perm-btns.four { grid-template-columns: .9fr .9fr 1fr 1.1fr; }
+
+/* ---- особенности тем ---- */
+[data-theme="pixel"] .card, [data-theme="pixel"] .gauge, [data-theme="pixel"] .btn { box-shadow: 2px 2px 0 var(--line); }
+[data-theme="pixel"] .top { border-bottom: 2px solid var(--line); }
+[data-theme="pixel"] .ring svg circle { stroke-linecap: butt; }
+[data-theme="starwars"] .card, [data-theme="starwars"] .gauge { border: 1px solid color-mix(in srgb, var(--line) 45%, transparent); }
+[data-theme="starwars"] .tab, [data-theme="starwars"] .sec, [data-theme="starwars"] .gauge .t { text-transform: uppercase; letter-spacing: .06em; }
+[data-theme="starwars"] .top { border-bottom-color: var(--line); background: var(--bg); }
+[data-theme="matrix"] body, [data-theme="matrix"] #app { text-shadow: 0 0 4px color-mix(in srgb, var(--text) 55%, transparent); }
+[data-theme="matrix"] .card, [data-theme="matrix"] .gauge { border: 1px solid var(--line); }
+[data-theme="synthwave"] .card, [data-theme="synthwave"] .gauge { border: 1px solid color-mix(in srgb, var(--line) 35%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--line) 25%, transparent); }
+[data-theme="synthwave"] .top { background: linear-gradient(90deg, var(--panel), var(--panel2)); border-bottom-color: var(--line); }
+[data-theme="claude"] .tab.on { color: var(--accent); }
+[data-theme="claude"] .card { border-left: 2px solid var(--accent); }
+[data-theme="paper"] .card, [data-theme="paper"] .gauge { border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="/static/icons.js"></script>
+<script>
+// Экран живёт в Chromium на сервере; плата показывает его снимки и присылает касания.
+let data = null, view = { name: null }, confirmCmd = null;
+const app = document.getElementById("app");
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ago = t => { const s = Math.max(0, Math.round(data.now - t)); return s < 60 ? s + " с" : s < 3600 ? Math.floor(s / 60) + " мин" : s < 86400 ? Math.floor(s / 3600) + " ч " + Math.floor(s % 3600 / 60) + " м" : Math.floor(s / 86400) + " д"; };
+const dur = s => { s = Math.max(0, Math.round(s)); return s >= 86400 ? Math.floor(s / 86400) + "д " + Math.floor(s % 86400 / 3600) + "ч" : s >= 3600 ? Math.floor(s / 3600) + "ч " + String(Math.floor(s % 3600 / 60)).padStart(2, "0") + "м" : Math.floor(s / 60) + " мин"; };
+const hm = t => new Date(t * 1000).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+const wd = t => new Date(t * 1000).toLocaleDateString("ru-RU", { weekday: "short" });
+const when = t => t - data.now > 72000 ? wd(t) + " " + hm(t) : hm(t);
+const pctCol = (p, warn = 90) => p >= warn ? "var(--red)" : p >= warn * .75 ? "var(--yellow)" : "var(--green)";
+const STATE = { working: ["работает", "blue"], waiting: ["ждёт ответа", "yellow"], done: ["готово", "green"], idle: ["ждёт задачу", "dim"] };
+const HEALTH = { up: ["OK", "green"], warn: ["проблемы", "yellow"], down: ["не отвечает", "red"], unknown: ["проверка…", "dim"] };
+const BACK = '<svg viewBox="0 0 12 12"><path d="M8 1 3 6l5 5" stroke="currentColor" stroke-width="2" fill="none"/></svg>';
+
+async function act(body) {
+  await fetch("/api/act", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  poll();
+}
+function go(v) { view = v; confirmCmd = null; touched(); render(true); }
+
+// ---- заставка: после простоя сами листаем вкладки, любое касание — стоп ----
+let lastTouch = Date.now(), saverIdx = 0, saverAt = 0;
+function touched() { lastTouch = Date.now(); }
+addEventListener("mousedown", touched, true);
+addEventListener("wheel", touched, true);
+function saverTick() {
+  if (!data || !data.saver.after || data.perms.length || data.alert.active) return;
+  const idle = (Date.now() - lastTouch) / 1000;
+  if (idle < data.saver.after || Date.now() - saverAt < data.saver.period * 1000) return;
+  saverAt = Date.now();
+  const order = ["home", "claude", "servers", "docker"];
+  saverIdx = (order.indexOf(view.name) + 1) % order.length;
+  view = { name: order[saverIdx] };
+  render(true);
+}
+
+// ---- графики (SVG) ----
+// pts: [[t, v], ...]; t0..t1 — ось времени; max — верх шкалы
+function line(pts, t0, t1, max, col, w = 300, h = 56, fill = true) {
+  if (pts.length < 2) return `<svg viewBox="0 0 ${w} ${h}"><text x="${w / 2}" y="${h / 2 + 4}" text-anchor="middle" fill="var(--faint)" font-size="10">мало данных</text></svg>`;
+  const X = t => ((t - t0) / (t1 - t0) * w).toFixed(1), Y = v => (h - 2 - Math.min(v, max) / max * (h - 4)).toFixed(1);
+  const d = pts.map(([t, v]) => `${X(t)},${Y(v)}`).join(" ");
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    ${fill ? `<polygon points="${X(pts[0][0])},${h} ${d} ${X(pts.at(-1)[0])},${h}" fill="${col}" opacity=".15"/>` : ""}
+    <polyline points="${d}" fill="none" stroke="${col}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
+}
+
+// ---- шапка -----------------------------------------------------------------------
+function tabs() {
+  const down = data.servers.filter(s => s.health === "down").length;
+  const t = (name, label, extra = "") => `<div class="tab ${view.name === name ? "on" : ""}" onclick="go({name:'${name}'})">${label}${extra}</div>`;
+  const dkBad = watched().filter(w => w.bad).length, mus = musicOn();
+  return `<div class="top">${t("claude", "Claude")}${t("servers", "Серверы", down ? `<span class="badge">${down}</span>` : "")}${t("docker", "Docker", dkBad ? `<span class="badge">${dkBad}</span>` : "")}${t("home", "Сводка")}${mus ? t("music", NOTE) : ""}
+    ${view.name === "home" || (down && dkBad) || mus ? "" : `<div class="clock">${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</div>`}</div>`;
+}
+const backBar = (title, right = "") => `<div class="top"><div class="back" onclick="go(${esc(JSON.stringify(view.back || { name: "claude" }))})">${BACK}<span class="ell" style="max-width:180px">${esc(title)}</span></div><div style="margin-left:auto">${right}</div></div>`;
+
+// ---- Claude -----------------------------------------------------------------------
+function gauge(label, pct, reset, stale, fc) {
+  const over = reset && reset <= data.now;
+  if (pct == null || pct < 0 || over) {
+    return `<div class="gauge"><div class="ring">${ring(0, "var(--faint)")}<b class="faint">—</b></div>
+      <div><div class="t">${label}</div><div class="s">${over ? "окно сброшено" : "нет данных"}</div></div></div>`;
+  }
+  const p = Math.round(pct), col = stale ? "var(--faint)" : pctCol(p);
+  const rs = !reset ? "" : reset - data.now < 72000 ? "сброс в " + hm(reset) : "сброс " + wd(reset) + " " + hm(reset);
+  return `<div class="gauge"><div class="ring">${ring(p, col)}<b style="color:${stale ? "var(--dim)" : "var(--text)"}">${p}%</b></div>
+    <div><div class="t">${label}</div><div class="s">${rs}</div>${fc && fc.before_reset && !stale
+      ? `<div class="s red">кончится ~${when(fc.eta)}</div>` : reset ? `<div class="s">через ${dur(reset - data.now)}</div>` : ""}</div></div>`;
+}
+function ring(p, col) {
+  const c = 2 * Math.PI * 20;
+  return `<svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="none" stroke="var(--panel2)" stroke-width="6"/>
+    ${p > 0 ? `<circle cx="25" cy="25" r="20" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round"
+      stroke-dasharray="${c * Math.min(p, 100) / 100} ${c}"/>` : ""}</svg>`;
+}
+function claudeView() {
+  const u = data.usage, age = u ? data.now - u.t : 0, stale = u && age > data.stale_s;
+  let h = tabs() + `<div class="body" data-scroll="claude"><div class="gauges" onclick="go({name:'usage',back:{name:'claude'}})">`;
+  h += gauge("5 часов", u?.five, u?.fiveReset, stale, data.forecast.five) + gauge("Неделя", u?.week, u?.weekReset, stale, data.forecast.week) + "</div>";
+  // Desktop пишет замер только при запуске, терминал — после каждого ответа: подсказываем, как освежить
+  const desk = u && u.model === "Claude Desktop";
+  if (u) {
+    const src = desk ? "Claude Desktop" : "терминал" + (u.model ? ", " + esc(u.model) : "");
+    const at = desk ? "замер " + (age > 72000 ? wd(u.t) + " " : "в ") + hm(u.t) : ago(u.t) + " назад";
+    h += `<div class="src ${stale ? "yellow" : ""}">${src}${u.ctx >= 0 ? " · контекст " + u.ctx + "%" : ""} · ${stale ? "устарело, " : ""}${at}</div>`;
+    if (stale) h += `<div class="src">${desk ? "обновить: перезапустить Desktop или claude в терминале" : "обновится после ответа claude в терминале"}</div>`;
+  } else h += `<div class="src">лимиты появятся из Claude Desktop или claude в терминале</div>`;
+  const td = data.today;
+  if (td.prompts || td.tools) h += `<div class="stat">сегодня: ${td.prompts} запр. · ${td.sessions} сесс. · ${td.tools} действий · разрешено ${td.allowed}${td.denied ? ", запрещено " + td.denied : ""}</div>`;
+  if (!data.sessions.length) h += `<div class="empty" style="padding-top:20px"><b>Сессий пока нет</b>bridge/claude_cyd.py install</div>`;
+  for (const s of data.sessions) {
+    const [st, col] = STATE[s.state] || STATE.idle;
+    h += `<div class="card" onclick='go({name:"session",sid:${JSON.stringify(s.sid)},back:{name:"claude"}})'>
+      <div class="icon ${s.state}">${s.state === "waiting" ? "?" : s.state === "done" ? '<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6.5 5 9l5-6" stroke="currentColor" stroke-width="2.2" fill="none"/></svg>' : ""}</div>
+      <div class="main"><div class="row"><div class="name ell">${esc(s.project)}</div><div class="meta ${col}">${st} · ${ago(s.t)}</div></div>
+      <div class="sub ell">${esc(String(s.text).replace(/\x01/g, ""))}</div></div><div class="chev">›</div></div>`;
+  }
+  return h + "</div>";
+}
+// ---- лимиты подробно: графики и прогноз ----
+function usageView() {
+  const u = data.usage, f = data.forecast, H = data.usage_hist;
+  let h = backBar("Лимиты") + `<div class="body" data-scroll="usage">`;
+  const fcText = (fc, reset) => !fc ? "темп ещё не ясен" : !fc.rate_h ? "сейчас не тратится"
+    : fc.before_reset ? `<span class="red">при ${fc.rate_h}%/ч кончится ~${when(fc.eta)}</span>`
+    : `${fc.rate_h}%/ч — хватит до сброса${reset ? " " + when(reset) : ""}`;
+  h += `<div class="chart"><div class="h"><span>5 часов · ${u ? Math.round(u.five) + "%" : "—"}</span><span class="dim">сутки</span></div>
+    ${line(H.day, data.now - 86400, data.now, 100, "var(--accent)")}<div class="s dim" style="font-size:10px">${fcText(f.five, u?.fiveReset)}</div></div>`;
+  h += `<div class="chart"><div class="h"><span>Неделя · ${u ? Math.round(u.week) + "%" : "—"}</span><span class="dim">7 дней</span></div>
+    ${line(H.week, data.now - 7 * 86400, data.now, 100, "var(--purple)")}<div class="s dim" style="font-size:10px">${fcText(f.week, u?.weekReset)}</div></div>`;
+  const top = data.today.projects;
+  if (top.length) h += `<div class="sec">Сегодня по проектам</div>` + top.map(([n, c]) => `<div class="act">${esc(n)} — ${c} запр.</div>`).join("");
+  return h + "</div>";
+}
+
+function sessionView() {
+  const s = data.sessions.find(x => x.sid === view.sid);
+  if (!s) return backBar("Сессия") + `<div class="body"><div class="empty"><b>Сессия завершена</b></div></div>`;
+  const [st, col] = STATE[s.state] || STATE.idle;
+  let h = backBar(s.project, `<span class="${col}" style="font-weight:600">${st}</span>`) + `<div class="body" data-scroll="session:${esc(s.sid)}">`;
+  h += `<div class="sec">Запрос</div><div class="txt">${esc(s.prompt || "—")}</div>`;
+  if (s.acts.length) {
+    h += `<div class="sec">Действия (${s.n_acts || s.acts.length})</div>`;
+    for (const a of s.acts) h += `<div class="act">${esc(a)}</div>`;
+  }
+  h += `<div class="sec">Ответ</div><div class="txt">${s.answer ? fmtAnswer(s.answer) : `<span class="dim">${s.state === "working" ? "Claude ещё работает…" : "ответа пока нет"}</span>`}</div>`;
+  return h + "</div>";
+}
+// \x01 в начале строки — заголовок из markdown (так их помечает мост)
+function fmtAnswer(t) {
+  return t.split("\n").map(l => l.startsWith("\x01") ? `<b class="blue">${esc(l.slice(1))}</b>` : esc(l)).join("\n");
+}
+
+// ---- разрешение --------------------------------------------------------------------
+function permView(p) {
+  const left = Math.max(0, p.wait - (data.now - p.t));
+  return `<div class="modal"><div class="perm-top"><span class="ell">Claude просит: ${esc(p.project)}</span>${data.perms.length > 1 ? `<span>ещё ${data.perms.length - 1}</span>` : ""}</div>
+    <div class="perm-tool">${esc(p.tool)}</div><div class="perm-text">${esc(p.text)}</div>
+    <div class="timer"><i style="width:${100 * left / p.wait}%"></i></div>
+    <div class="perm-btns ${p.always ? "four" : ""}">
+      <div class="btn no" onclick='act({a:"perm",id:${JSON.stringify(p.id)},decision:"deny"})'>Запретить</div>
+      <div class="btn" onclick='act({a:"perm",id:${JSON.stringify(p.id)},decision:"pass"})'>${p.always ? "Терминал" : "В терминале"}</div>
+      ${p.always ? `<div class="btn" style="background:color-mix(in srgb, var(--green) 35%, var(--panel2))" onclick='act({a:"perm",id:${JSON.stringify(p.id)},decision:"always"})'>Всегда</div>` : ""}
+      <div class="btn ok" onclick='act({a:"perm",id:${JSON.stringify(p.id)},decision:"allow"})'>Разрешить</div></div></div>`;
+}
+
+// ---- серверы ------------------------------------------------------------------------
+function spark(hist) {
+  const v = hist.filter(x => x >= 0);
+  if (v.length < 2) return "";
+  const max = Math.max(...v, 5), pts = hist.map((x, i) => `${(i / (hist.length - 1) * 62 + 1).toFixed(1)},${x < 0 ? 21 : (21 - x / max * 19).toFixed(1)}`).join(" ");
+  return `<svg class="spark" viewBox="0 0 64 22"><polyline points="${pts}" fill="none" stroke="var(--blue)" stroke-width="1.5"/></svg>`;
+}
+function bar(label, p, warn = 90) {
+  return `<div class="bar"><span>${label} ${p}%</span><i><em style="width:${Math.min(p, 100)}%;background:${pctCol(p, warn)}"></em></i></div>`;
+}
+function statBars(st) {
+  if (!st) return "";
+  return `<div class="bars">${bar("CPU", Math.round(st.load / st.cpus * 100), 150)}${bar("RAM", Math.round(st.mem_used * 100 / Math.max(1, st.mem_total)))}${bar("Диск", st.disk)}</div>`;
+}
+function checks(s) {
+  const p = [];
+  if (s.ping != null) p.push(s.ping >= 0 ? `ping ${s.ping} мс` : `<span class="red">ping нет</span>`);
+  if (s.tcp != null) p.push(s.tcp ? `:${s.tcp_port} ok` : `<span class="red">:${s.tcp_port} закрыт</span>`);
+  if (s.http != null) p.push(s.http > 0 && s.http < 400 ? `HTTP ${s.http}` : `<span class="red">HTTP ${s.http || "нет"}</span>`);
+  return p.join(" · ");
+}
+// плитки: только иконка, имя и статус; тап — тот же экран сервера, что и из списка
+// tiles_cols = 0 (авто): столько колонок, чтобы все серверы влезли без прокрутки и плитки были крупнее
+const TW = 308, TH = 202, GAP = 6;     // место под плитки: экран минус шапка и отступы
+function tileGrid(n) {
+  const fit = c => { const r = Math.ceil(n / c); return Math.min((TW - GAP * (c - 1)) / c, (TH - GAP * (r - 1)) / r); };
+  if (data.tiles_cols) { const c = Math.min(5, Math.max(2, data.tiles_cols)); return [c, (TW - GAP * (c - 1)) / c]; }
+  let best = [2, fit(2)];
+  for (let c = 3; c <= 6; c++) if (fit(c) >= best[1]) best = [c, fit(c)];
+  return best;
+}
+function tilesView() {
+  const [cols, w] = tileGrid(data.servers.length), sz = Math.floor(w);
+  let h = `<div class="tiles" style="grid-template-columns:repeat(${cols},${sz}px);grid-auto-rows:${sz}px">`;
+  for (const s of data.servers) {
+    const [ht, col] = HEALTH[s.health];
+    const st = s.health === "down" && s.down_since ? "лежит " + dur(data.now - s.down_since) : ht;
+    h += `<div class="tile ${s.health}" style="--hc:var(--${col === "dim" ? "faint" : col})" onclick='go({name:"server",id:${JSON.stringify(s.id)},back:{name:"servers"}})'>
+      <div class="dot"></div><div class="ic">${serverIcon(s.icon, Math.round(sz * .36))}</div>
+      <div class="nm ell" style="font-size:${sz < 60 ? 10 : 11}px">${esc(s.name)}</div>${sz >= 60 ? `<div class="st ell">${st}</div>` : ""}</div>`;
+  }
+  return h + "</div>";
+}
+function serversView() {
+  let h = tabs() + `<div class="body" data-scroll="servers">`;
+  if (!data.servers.length) h += `<div class="empty"><b>Серверов пока нет</b>добавьте их на странице /admin</div>`;
+  else if (data.servers_view === "tiles") return h + tilesView() + "</div>";
+  for (const s of data.servers) {
+    const [ht, col] = HEALTH[s.health];
+    h += `<div class="card" onclick='go({name:"server",id:${JSON.stringify(s.id)},back:{name:"servers"}})'>
+      <div style="color:var(--${col === "dim" ? "faint" : col});line-height:0;flex:none">${serverIcon(s.icon, 20)}</div>
+      <div class="main"><div class="row"><div class="name ell">${esc(s.name)}</div><div class="meta ${col}">${ht}</div></div>
+      <div class="sub ell">${s.health === "down" && s.down_since ? `лежит с ${hm(s.down_since)} (${dur(data.now - s.down_since)})` : checks(s)}</div>
+      ${s.health !== "down" ? statBars(s.stats) : ""}</div>${spark(s.history)}</div>`;
+  }
+  return h + "</div>";
+}
+function serverView() {
+  const s = data.servers.find(x => x.id === view.id);
+  if (!s) return backBar("Сервер") + `<div class="body"><div class="empty"><b>Сервер удалён</b></div></div>`;
+  const [ht, col] = HEALTH[s.health];
+  const keyBad = s.ssh_err.includes("КЛЮЧ");
+  let h = backBar(s.name, `<span class="btn small" onclick='act({a:"${keyBad ? "forget_key" : "check"}",server:${JSON.stringify(s.id)}})'>${keyBad ? "Забыть ключ" : "Проверить"}</span>`);
+  h += `<div class="body" data-scroll="server:${esc(s.id)}"><div class="row" style="display:flex;justify-content:space-between">
+    <b class="${col}" style="font-size:14px">${ht}</b><span class="dim">${esc(s.host)}</span></div><div class="sub dim" style="margin-top:2px">${checks(s)}</div>`;
+  if (s.stats) {
+    const st = s.stats;
+    h += statBars(st) + `<div class="sub dim" style="margin-top:4px">load ${st.load.toFixed(2)} / ${st.cpus} ядер · RAM ${st.mem_used} / ${st.mem_total} МБ · работает ${dur(st.uptime)}</div>`;
+  }
+  if (s.series.length > 1) {
+    const t0 = Math.max(data.now - 86400, s.series[0][0]), mk = (i, label, col) => `<div class="mini"><span>${label} ${s.series.at(-1)[i]}% · ${dur(data.now - t0)}</span>
+      ${line(s.series.map(r => [r[0], r[i]]), t0, data.now, 100, col, 100, 22)}</div>`;
+    h += `<div class="minis">${mk(1, "CPU", "var(--accent)")}${mk(2, "RAM", "var(--purple)")}${mk(3, "Диск", "var(--yellow)")}</div>`;
+  }
+  if (s.ssh_err) h += `<div class="sub yellow" style="margin-top:3px">SSH: ${esc(s.ssh_err)}</div>`;
+  if (s.docker) {
+    const cs = s.containers || [], bad = cs.filter(c => c.state !== "running").length;
+    h += `<div class="card" style="margin-top:6px" onclick='go({name:"containers",id:${JSON.stringify(s.id)},back:{name:"server",id:${JSON.stringify(s.id)},back:{name:"servers"}}})'>
+      <div class="main"><div class="row"><div class="name">Контейнеры Docker</div><div class="meta ${bad ? "red" : "green"}">${s.containers ? (cs.length - bad) + " из " + cs.length + " работают" : esc(s.docker_err || "загрузка…")}</div></div></div><div class="chev">›</div></div>`;
+  }
+  if (s.has_ssh) {
+    h += `<div class="grid">` + data.commands.map((c, i) =>
+      `<div class="btn ${c.confirm ? "danger" : ""}" onclick='runCmd(${JSON.stringify(s.id)},${i})'>${esc(c.label)}</div>`).join("") + "</div>";
+  } else h += `<div class="empty" style="padding-top:16px">SSH не настроен</div>`;
+  h += "</div>";
+  if (confirmCmd) {
+    const c = data.commands[confirmCmd.i];
+    h += `<div class="confirm"><b style="font-size:14px">${esc(s.name)}: ${esc(c.label)}?</b><div class="dim" style="font:10px monospace">${esc(c.cmd)}</div>
+      <div class="row2"><div class="btn" onclick="confirmCmd=null;render(true)">Отмена</div><div class="btn no" onclick='doCmd(${JSON.stringify(s.id)},${confirmCmd.i})'>Выполнить</div></div></div>`;
+  }
+  return h;
+}
+function containersView() {
+  const s = data.servers.find(x => x.id === view.id);
+  if (!s) return backBar("Контейнеры") + `<div class="body"></div>`;
+  let h = backBar(`${s.name}: контейнеры`) + `<div class="body" data-scroll="ctr:${esc(s.id)}">`;
+  if (!s.containers) h += `<div class="empty">${esc(s.docker_err || "загрузка…")}</div>`;
+  for (const c of s.containers || []) {
+    const ok = c.state === "running";
+    h += `<div class="ctr" onclick='go({name:"container",id:${JSON.stringify(s.id)},c:${JSON.stringify(c.name)},back:${JSON.stringify(view)}})'>
+      <div class="dot" style="background:var(--${ok ? "green" : c.state === "restarting" ? "yellow" : "red"})"></div>
+      <div class="name ell">${esc(c.name)}</div><div class="st ell">${esc(c.status)}</div></div>`;
+  }
+  return h + "</div>";
+}
+function containerView() {
+  const s = data.servers.find(x => x.id === view.id), c = s && (s.containers || []).find(x => x.name === view.c);
+  if (!c) return backBar(view.c || "Контейнер") + `<div class="body"><div class="empty"><b>Контейнер не найден</b></div></div>`;
+  const ok = c.state === "running", A = (a, label, cls = "", confirm = false) =>
+    `<div class="btn ${cls}" onclick='${confirm ? `confirmCmd={ctr:"${a}"};render(true)` : `doCtr(${JSON.stringify(s.id)},${JSON.stringify(c.name)},"${a}")`}'>${label}</div>`;
+  let h = backBar(c.name) + `<div class="body"><b class="${ok ? "green" : "red"}">${esc(c.state)}</b>
+    <div class="sub dim">${esc(c.status)}</div><div class="sub dim ell">${esc(c.image)}</div>
+    <div class="grid">${A("logs", "Логи")}${A("restart", "Перезапуск", "danger", true)}${ok ? A("stop", "Остановить", "danger", true) : A("start", "Запустить")}</div></div>`;
+  if (confirmCmd && confirmCmd.ctr) {
+    const lbl = { restart: "Перезапустить", stop: "Остановить" }[confirmCmd.ctr];
+    h += `<div class="confirm"><b style="font-size:14px">${lbl} ${esc(c.name)}?</b>
+      <div class="row2"><div class="btn" onclick="confirmCmd=null;render(true)">Отмена</div><div class="btn no" onclick='doCtr(${JSON.stringify(s.id)},${JSON.stringify(c.name)},"${confirmCmd.ctr}")'>${lbl}</div></div></div>`;
+  }
+  return h;
+}
+function doCtr(id, name, action) {
+  confirmCmd = null;
+  view = { name: "output", back: view };
+  act({ a: "container", server: id, name, action });
+}
+
+// ---- Docker: важные контейнеры всех серверов (отмечаются в /admin) ----
+// docker пишет статус по-английски: «Up 3 days», «Exited (137) 2 hours ago»
+const DK_UNITS = [[/About an? hour/, "~1 ч"], [/About a minute/, "~1 мин"], [/Less than a second/, "<1 с"], [/ seconds?/, " с"], [/ minutes?/, " мин"],
+  [/ hours?/, " ч"], [/ days?/, " д"], [/ weeks?/, " нед"], [/ months?/, " мес"], [/ years?/, " г"], [/ ago/, " назад"], [/\s*\((healthy|unhealthy|health: starting)\)/, ""]];
+function dkStatus(c) {
+  let s = c.status.replace(/^Up /, "работает ").replace(/^Exited \((\d+)\) /, "стоп ($1) ").replace(/^Restarting \((\d+)\) /, "перезапуск ($1) ").replace(/^Created$/, "создан");
+  for (const [re, ru] of DK_UNITS) s = s.replace(re, ru);
+  return /unhealthy/.test(c.status) ? s + ", unhealthy" : s;
+}
+function watched() {
+  if (!data) return [];
+  const out = [];
+  for (const s of data.servers) for (const n of s.watch || []) {
+    const c = (s.containers || []).find(x => x.name === n);
+    const known = s.containers && s.health !== "down";
+    const bad = known && (!c || c.state !== "running" || /unhealthy/.test(c.status));
+    out.push({ s, n, c, bad, known });
+  }
+  return out.sort((a, b) => b.bad - a.bad);     // упавшие — наверх
+}
+function dockerView() {
+  const list = watched();
+  let h = tabs() + `<div class="body" data-scroll="docker">`;
+  if (!list.length) return h + `<div class="empty"><b>Важных контейнеров нет</b>отметьте их в /admin у каждого сервера</div></div>`;
+  const bad = list.filter(w => w.bad).length;
+  h += `<div class="src" style="margin-top:0;color:var(--${bad ? "red" : "green"})">${bad ? `не работают: ${bad} из ${list.length}` : `все ${list.length} работают`}</div><div class="dk">`;
+  for (const { s, n, c, bad, known } of list) {
+    const col = !known ? "faint" : bad ? (c && c.state === "restarting" ? "yellow" : "red") : "green";
+    const st = !known ? (s.docker_err || (s.health === "down" ? "сервер не отвечает" : "нет данных")) : c ? dkStatus(c) : "нет на сервере";
+    h += `<div class="${bad ? "bad" : ""}" style="--hc:var(--${col})" onclick='go({name:"container",id:${JSON.stringify(s.id)},c:${JSON.stringify(n)},back:{name:"docker"}})'>
+      <b class="ell">${esc(n)}</b><span class="ell"><span class="srv" style="display:inline">${esc(s.name)}</span> · ${esc(st)}</span></div>`;
+  }
+  return h + "</div></div>";
+}
+
+// ---- музыка: что играет на компьютере (мост читает плеер через Windows) ----
+const NOTE = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>`;
+const MBTN = {
+  prev: '<path d="M19 20 9 12l10-8z" fill="currentColor"/><path d="M5 19V5"/>',
+  next: '<path d="m5 4 10 8-10 8z" fill="currentColor"/><path d="M19 5v14"/>',
+  play: '<path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/>',
+  pause: '<path d="M8 5v14M16 5v14" stroke-width="3.2"/>',
+};
+const mIcon = (k, sz) => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${MBTN[k]}</svg>`;
+// вкладка видна, пока за последние 10 минут что-то играло (или мы на ней)
+const musicOn = () => view.name === "music" || (data.media && data.media.title && data.media.status !== "none" && data.now - data.media.t < 600);
+const mmss = s => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+function musicView() {
+  const m = data.media, h = tabs() + `<div class="body">`;
+  if (!m || !m.title || m.status === "none")
+    return h + `<div class="empty"><b>Ничего не играет</b>включите Яндекс Музыку на компьютере</div></div>`;
+  const off = data.now - m.t > 60, playing = m.status === "playing" && !off;
+  const pos = Math.min(m.dur || 0, m.pos + (playing ? data.now - m.t : 0));
+  const B = (cmd, icon, sz, cls = "") => `<div class="${cls}" onclick='act({a:"media",cmd:"${cmd}"})'>${mIcon(icon, sz)}</div>`;
+  return h + `<div class="mu"><div class="cv" style="${m.cover ? `background-image:url(/media/cover/${esc(m.cover)})` : ""}">${m.cover ? "" : NOTE}</div>
+    <div style="min-width:0;flex:1"><div class="tt">${esc(m.title)}</div><div class="ar ell">${esc(m.artist || "")}</div>
+    ${m.album ? `<div class="al ell">${esc(m.album)}</div>` : ""}<div class="ap">${off ? "компьютер не на связи" : esc(m.app) + (playing ? "" : " · пауза")}</div></div></div>
+    ${m.dur ? `<div class="mpr"><i><em style="width:${(pos / m.dur * 100).toFixed(1)}%"></em></i><div><span>${mmss(pos)}</span><span>${mmss(m.dur)}</span></div></div>` : ""}
+    <div class="mbt">${B("prev", "prev", 20)}${B("toggle", playing ? "pause" : "play", 26, "pp")}${B("next", "next", 20)}</div></div>`;
+}
+
+// ---- сводка: часы, погода, курсы, включение компьютеров ----
+const WX = {
+  sun: '<circle cx="12" cy="12" r="5" fill="var(--yellow)"/><g stroke="var(--yellow)" stroke-width="2">' + [0, 45, 90, 135, 180, 225, 270, 315].map(a => `<line x1="12" y1="2" x2="12" y2="4.5" transform="rotate(${a} 12 12)"/>`).join("") + "</g>",
+  "cloud-sun": '<circle cx="9" cy="9" r="4" fill="var(--yellow)"/><path d="M7 19h10a4 4 0 0 0 0-8 5 5 0 0 0-9.6 1.5A3.3 3.3 0 0 0 7 19z" fill="var(--dim)"/>',
+  cloud: '<path d="M6 19h11a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4 2A3.5 3.5 0 0 0 6 19z" fill="var(--dim)"/>',
+  fog: '<g stroke="var(--dim)" stroke-width="2" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="2" y1="13" x2="18" y2="13"/><line x1="6" y1="17" x2="22" y2="17"/></g>',
+  rain: '<path d="M6 15h11a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.5 1.8A3.2 3.2 0 0 0 6 15z" fill="var(--dim)"/><g stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><line x1="8" y1="18" x2="7" y2="21"/><line x1="12" y1="18" x2="11" y2="21"/><line x1="16" y1="18" x2="15" y2="21"/></g>',
+  snow: '<path d="M6 15h11a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.5 1.8A3.2 3.2 0 0 0 6 15z" fill="var(--dim)"/><g fill="var(--text)"><circle cx="8" cy="19" r="1.3"/><circle cx="12" cy="21" r="1.3"/><circle cx="16" cy="19" r="1.3"/></g>',
+  storm: '<path d="M6 14h11a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.5 1.8A3.2 3.2 0 0 0 6 14z" fill="var(--dim)"/><path d="M13 14l-3 5h3l-2 4 5-6h-3l2-3z" fill="var(--yellow)"/>',
+};
+const wxIcon = k => `<svg viewBox="0 0 24 24">${WX[k] || WX.cloud}</svg>`;
+function homeView() {
+  const d = new Date(), w = data.weather, r = data.rates;
+  let h = tabs() + `<div class="body" data-scroll="home"><div class="home-top">
+    <div class="big-clock">${d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</div>
+    <div class="date">${d.toLocaleDateString("ru-RU", { weekday: "long" })}<br><b style="color:var(--text);font-size:13px">${d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}</b></div></div>`;
+  if (w.temp != null) {
+    h += `<div class="wx">${wxIcon(w.icon)}<div class="temp">${w.temp > 0 ? "+" : ""}${w.temp}°</div>
+      <div style="flex:1;min-width:0"><div class="ell" style="font-weight:600">${esc(w.city)} · ${esc(w.text)}</div>
+      <div class="sub dim ell">ощущ. ${w.feels}° · ${w.tmin}…${w.tmax}° · ${w.wind} м/с</div></div></div>`;
+    h += `<div class="hours">` + w.hours.map(x => `<div class="hour"><span class="dim">${x.h}:00</span>${wxIcon(x.icon)}${x.temp}°</div>`).join("") + `</div>`;
+  } else h += `<div class="wx dim">${w.err ? "погода: " + esc(w.err) : "погода загружается…"}</div>`;
+  if (r.items.length) h += `<div class="rates">` + r.items.map(x => `<div class="rate"><span class="dim">${x.code}</span><b>${x.value.toFixed(2)}</b>
+      <span class="${x.delta > 0 ? "red" : x.delta < 0 ? "green" : "dim"}">${x.delta > 0 ? "▲" : x.delta < 0 ? "▼" : ""}${Math.abs(x.delta).toFixed(2)}</span></div>`).join("") + `</div>`;
+  if (data.wol.length) h += `<div class="wols">` + data.wol.map((x, i) => `<div class="btn" onclick='wake(${i})'>⏻ ${esc(x.name)}</div>`).join("") + `</div>`;
+  return h + "</div>";
+}
+function wake(i) {
+  view = { name: "output", back: { name: "home" } };
+  act({ a: "wol", i });
+}
+
+function runCmd(id, i) {
+  if (data.commands[i].confirm) { confirmCmd = { i }; render(true); } else doCmd(id, i);
+}
+function doCmd(id, i) {
+  confirmCmd = null;
+  view = { name: "output", back: { name: "server", id, back: { name: "servers" } } };
+  act({ a: "cmd", server: id, cmd: i });
+}
+function outputView() {
+  const c = data.cmd;
+  const right = c.running ? `<span class="yellow">выполняется…</span>` : c.code == null ? "" : `<span class="${c.code === 0 ? "green" : "red"}">код ${c.code}</span>`;
+  return backBar(`${c.server}: ${c.label}`, right) + `<div class="body" data-scroll="output"><pre class="out">${esc(c.output || (c.running ? "" : "(пустой вывод)"))}</pre></div>`;
+}
+
+// ---- тема -------------------------------------------------------------------------------
+let themeKey = "";
+function applyTheme(t) {
+  if (!t) return;
+  const key = JSON.stringify(t);
+  if (key === themeKey) return;
+  themeKey = key;
+  const r = document.documentElement;
+  r.dataset.theme = t.preset;
+  for (const [k, v] of Object.entries(t.colors)) r.style.setProperty("--" + k, v);
+  r.style.setProperty("--font", t.font);
+  r.style.setProperty("--mono", /Mono|Press Start/.test(t.font_name) ? t.font : '"DejaVu Sans Mono"');
+  r.style.setProperty("--radius", t.radius + "px");
+}
+
+// ---- отрисовка ------------------------------------------------------------------------
+function render(force) {
+  if (!data) return;
+  applyTheme(data.theme);
+  if (!view.name) view = { name: data.default_view };
+  // запоминаем прокрутку, чтобы перерисовка не сбрасывала её
+  const scroll = {};
+  app.querySelectorAll("[data-scroll]").forEach(e => scroll[e.dataset.scroll] = e.scrollTop);
+  let h;
+  if (data.perms.length) h = permView(data.perms[0]);
+  else h = ({ claude: claudeView, servers: serversView, session: sessionView, server: serverView, output: outputView,
+              usage: usageView, containers: containersView, container: containerView, home: homeView, docker: dockerView, music: musicView }[view.name] || claudeView)();
+  if (data.alert.active && !data.perms.length) {
+    h += `<div class="alert">⚠ ${esc(data.alert.text)}<div class="btn" onclick='act({a:"ack"})'>Понятно</div></div>`;
+  }
+  app.innerHTML = h;
+  app.querySelectorAll("[data-scroll]").forEach(e => {
+    if (scroll[e.dataset.scroll] != null) e.scrollTop = scroll[e.dataset.scroll];
+    else if (view.name === "output") e.scrollTop = e.scrollHeight;   // вывод команды — сразу конец
+  });
+}
+async function poll() {
+  try {
+    const r = await fetch("/api/ui");
+    const j = await r.text();
+    data = JSON.parse(j);
+    render();
+  } catch (e) { /* сервер перезапускается */ }
+}
+poll();
+setInterval(poll, 1000);
+setInterval(saverTick, 1000);
+</script>
+</body>
+</html>

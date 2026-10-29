@@ -1,0 +1,22 @@
+services:
+  cydhub:
+    build: .
+    container_name: cydhub
+    restart: unless-stopped
+    ports:
+      - "8770:8770"
+    environment:
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?задайте ADMIN_PASSWORD в .env}
+      - TZ=${TZ:-Europe/Moscow}
+    volumes:
+      - ./data:/data
+    # ping внутри контейнера
+    cap_add:
+      - NET_RAW
+
+# Подсеть закреплена: SSH-ключ CYD Hub разрешён только из неё (from= в authorized_keys)
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.31.0.0/16

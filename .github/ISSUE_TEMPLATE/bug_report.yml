@@ -1,0 +1,28 @@
+name: Ошибка
+description: Что-то работает не так
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Что случилось
+      description: Что вы делали, что ожидали увидеть и что получилось. Скриншот экрана или /admin очень помогает.
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Где
+      multiple: true
+      options: [Экран / интерфейс, Сервер (Docker), Прошивка платы, Мост на компьютере, Корпус]
+  - type: input
+    id: board
+    attributes:
+      label: Плата
+      placeholder: "ESP32-2432S028, один micro-USB / micro-USB + USB-C"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи
+      description: "`docker logs cydhub --tail 50`, вывод моста. Уберите токены, IP и пароли."
+      render: text

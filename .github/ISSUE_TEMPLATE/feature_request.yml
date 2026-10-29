@@ -1,0 +1,16 @@
+name: Идея
+description: Предложить новую возможность
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Что хочется
+      description: Что должно появиться на экране или в настройках и зачем.
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: Как это могло бы выглядеть
+      description: Набросок, ссылка, пример из другого проекта.

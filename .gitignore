@@ -1,0 +1,22 @@
+# данные и секреты хаба
+server/data/
+server/.env
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# сборки прошивки
+firmware/**/build/
+*.bin
+*.elf
+
+# редакторы и ОС
+.vscode/
+.idea/
+.claude/
+.DS_Store
+Thumbs.db
+desktop.ini
