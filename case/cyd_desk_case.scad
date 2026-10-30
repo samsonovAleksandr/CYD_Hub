@@ -25,11 +25,18 @@ view_l     = 59.0;   // видимая область экрана
 view_w     = 44.5;
 view_off_x = 0.0;
 view_off_y = 0.0;
-// micro-USB — на коротком торце x=0, на обратной стороне платы
+// micro-USB — на коротком торце x=0, на обратной стороне платы.
+// Окно рассчитано на литую часть штекера: она заходит в стенку на 1–1,5 мм.
 cyd_usb    = true;
 cyd_usb_y  = 14.0;   // центр разъёма от нижнего длинного края (замерить!)
-cyd_usb_w  = 12.0;
-cyd_usb_h  = 7.0;
+cyd_usb_z  = 1.6;    // центр разъёма ниже платы
+cyd_usb_w  = 13.0;   // окно под штекер (ширина × высота)
+cyd_usb_h  = 9.0;
+// CYD "2USB": рядом с micro-USB есть USB-C на том же торце
+cyd_usbc   = false;
+cyd_usbc_y = 32.0;   // центр USB-C от нижнего длинного края (замерить!)
+cyd_usbc_w = 13.0;
+cyd_usbc_h = 8.0;
 
 // ---------------- КОРПУС ----------------------------------------------
 wall     = 2.4;
@@ -86,10 +93,17 @@ module shell_outline(inset, h) {
   translate([-wall + inset, -wall + inset, 0])
     rbox(OL - 2 * inset, OW - 2 * inset, h, max(0.5, corner_r - inset));
 }
+// окно в торце x=0: скруглённое, снаружи с фаской 0,8 мм — штекер легче попадает
+module port_cut(y, w, h) {
+  r = 1.5;
+  module plate(dw, x, t) translate([x, clr + y, zp - cyd_usb_z]) rotate([0, 90, 0])
+    linear_extrude(t) offset(r) square([h - 2 * r + dw, w - 2 * r + dw], center = true);
+  plate(0, -wall - 1, wall + 2);
+  hull() { plate(1.6, -wall - 0.01, 0.01); plate(0, -wall + 0.8, 0.01); }
+}
 module usb_cut() {
-  if (cyd_usb)
-    translate([-wall - 1, clr + cyd_usb_y - cyd_usb_w / 2, zp - 1.4 - cyd_usb_h / 2])
-      cube([wall + 2, cyd_usb_w, cyd_usb_h]);
+  if (cyd_usb)  port_cut(cyd_usb_y, cyd_usb_w, cyd_usb_h);
+  if (cyd_usbc) port_cut(cyd_usbc_y, cyd_usbc_w, cyd_usbc_h);
 }
 
 // ---------------- Лицевая панель --------------------------------------
