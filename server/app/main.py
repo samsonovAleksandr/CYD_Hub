@@ -18,7 +18,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-from . import extras, monitor, space, weeek
+from . import extras, monitor, space, weeek, printer
 from .render import Screen
 from .state import DATA, FONTS, THEMES, claude, config, new_token, resolve_theme, signals
 
@@ -291,6 +291,7 @@ def ui():
         "wol": [{"name": w["name"]} for w in config.data["wol"]],
         "saver": {"after": config.data["screen"]["saver_after_s"], "period": config.data["screen"]["saver_period_s"]},
         "weeek": weeek.public(),
+        "printer": printer.public(),
     }
 
 
@@ -328,6 +329,8 @@ async def act(req: Request):
             monitor.check_now()
     elif a == "weeek_complete":
         asyncio.create_task(weeek.complete(d["id"]))
+    elif a in ("printer_pause", "printer_resume", "printer_cancel"):
+        asyncio.create_task(printer.command(a.split("_", 1)[1]))
     screen.kick.set()
     return {}
 
@@ -373,6 +376,17 @@ async def weeek_test_post(req: Request):
     """Проверка токена из поля ввода /admin без перезагрузки настроек."""
     d = await req.json()
     return await weeek.test(d.get("token"))
+
+
+@app.get("/api/printer/test", dependencies=[Depends(admin_ok)])
+async def printer_test():
+    return await printer.test()
+
+
+@app.post("/api/printer/test", dependencies=[Depends(admin_ok)])
+async def printer_test_post(req: Request):
+    d = await req.json()
+    return await printer.test(d.get("url"))
 
 
 @app.post("/api/token", dependencies=[Depends(admin_ok)])
@@ -446,6 +460,7 @@ async def startup():
     asyncio.create_task(extras.loop())
     asyncio.create_task(space.loop())
     asyncio.create_task(weeek.loop())
+    asyncio.create_task(printer.loop())
     # браузер стартует после того, как uvicorn начнёт отвечать
     async def later():
         await asyncio.sleep(1)

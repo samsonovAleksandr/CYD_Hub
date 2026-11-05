@@ -101,7 +101,7 @@ pre { background: var(--bg); padding: 8px; border-radius: 8px; overflow-x: auto;
         <div><label>Лимиты устаревают, мин</label><input id="usage_stale_min" type="number" min="1"></div>
         <div><label>Приглушить без касаний, с (0 — нет)</label><input id="dim_after_s" type="number" min="0"></div>
         <div><label>Погасить без касаний, с (0 — нет)</label><input id="off_after_s" type="number" min="0"></div>
-        <div><label>Экран по умолчанию</label><select id="default_view"><option value="claude">Лимиты ИИ</option><option value="servers">Серверы</option><option value="docker">Docker</option><option value="home">Сводка</option><option value="iss">МКС</option><option value="spaceweather">Космическая погода</option><option value="weeek">Задачи Weeek</option></select></div>
+        <div><label>Экран по умолчанию</label><select id="default_view"><option value="claude">Лимиты ИИ</option><option value="servers">Серверы</option><option value="docker">Docker</option><option value="home">Сводка</option><option value="iss">МКС</option><option value="spaceweather">Космическая погода</option><option value="weeek">Задачи Weeek</option><option value="printer">Принтер</option></select></div>
         <div><label>Разворот экрана</label><select id="rotation"><option value="0">Обычный (0°)</option><option value="180">Перевёрнутый (180°)</option></select></div>
         <div><label>Заставка через, с (0 — нет)</label><input id="saver_after_s" type="number" min="0"></div>
         <div><label>Смена вкладок заставки, с</label><input id="saver_period_s" type="number" min="5"></div>
@@ -157,6 +157,17 @@ pre { background: var(--bg); padding: 8px; border-radius: 8px; overflow-x: auto;
         <div><label>Дней вперёд</label><input id="weeek_days" type="number" min="1" max="30" value="7"></div>
       </div>
       <button class="primary" style="width:auto" onclick="testWeeek()">Проверить токен</button> <span id="weeek_test" class="sub" style="margin-left:8px"></span>
+    </section>
+
+    <section>
+      <h2>Принтер (Moonraker / Klipper)</h2>
+      <div class="sub">Moonraker обычно крутится на том же сервере, что и CYD Hub — по умолчанию http://localhost:7125. Если на другой машине, укажите её адрес.</div>
+      <label class="check"><input type="checkbox" id="printer_enabled" onchange="drawPrinter()"> Включить вкладку «Принтер» на экране</label>
+      <div class="row" id="printer_fields" style="display:none">
+        <div><label>Адрес Moonraker</label><input id="printer_url" placeholder="http://localhost:7125"></div>
+        <div><label>Обновлять, с</label><input id="printer_refresh" type="number" min="2" max="300" value="5"></div>
+      </div>
+      <button class="primary" style="width:auto" onclick="testPrinter()">Проверить соединение</button> <span id="printer_test" class="sub" style="margin-left:8px"></span>
     </section>
 
     <section>
@@ -229,6 +240,11 @@ function draw() {
   for (const k of SCREEN_KEYS) $(k).value = cfg.screen[k];
   for (const k of SPACE_CHECKS) $(k).checked = cfg.screen[k];
   for (const k of DASH_KEYS) $(k).value = cfg.dashboard[k];
+  $("printer_enabled").checked = !!cfg.printer?.enabled;
+  $("printer_url").value = cfg.printer?.url || "http://localhost:7125";
+  $("printer_refresh").value = cfg.printer?.refresh_s ?? 5;
+  drawPrinter();
+  drawBright();
   $("wol").innerHTML = cfg.wol.map((w, i) => `
     <div class="cmd" style="grid-template-columns:1fr 160px 1fr auto"><input value="${esc(w.name)}" placeholder="Имя (Компьютер)" oninput="cfg.wol[${i}].name=this.value">
       <input value="${esc(w.mac)}" placeholder="AA:BB:CC:DD:EE:FF" oninput="cfg.wol[${i}].mac=this.value" style="font-family:monospace">
@@ -239,13 +255,25 @@ function draw() {
   $("weeek_refresh").value = cfg.weeek?.refresh_s ?? 120;
   $("weeek_days").value = cfg.weeek?.days ?? 7;
   drawWeeek();
-  drawBright();
   drawTiles();
   $("sound").checked = cfg.screen.sound;
   $("token").textContent = cfg.token;
   $("hubUrl").textContent = location.origin;
   $("usage_provider").value = cfg.usage_provider || "codex";
   $("bridgeCmd").textContent = `python bridge/${cfg.usage_provider === "claude" ? "claude" : "codex"}_cyd.py install --url ${location.origin} --token ${cfg.token}`;
+}
+function drawPrinter() {
+  const on = $("printer_enabled").checked;
+  document.getElementById("printer_fields").style.display = on ? "" : "none";
+}
+async function testPrinter() {
+  const url = $("printer_url").value.trim() || (cfg.printer && cfg.printer.url);
+  const r = await fetch("/api/printer/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
+  const j = await r.json();
+  const el = $("printer_test");
+  el.style.color = j.ok ? "var(--green)" : "var(--red)";
+  el.textContent = j.ok ? `OK: ${j.name} (${j.state})` : `Ошибка: ${j.err}`;
+  setTimeout(() => el.textContent = "", 5000);
 }
 // важные контейнеры: что сейчас есть на сервере (из /api/ui) + уже отмеченные
 let live = {};
@@ -311,6 +339,7 @@ const SCREEN_KEYS = ["rotation", "dim_after_s", "off_after_s", "default_view", "
   "brightness_mode", "night_level", "night_from", "night_to", "lux_dark", "lux_bright", "iss_interval_s", "spaceweather_interval_min"];
 const SPACE_CHECKS = ["show_iss", "show_spaceweather"];
 const DASH_KEYS = ["city", "lat", "lon", "rates"];
+const PRINTER_KEYS = ["printer_enabled", "printer_url", "printer_refresh"];
 // без draw(): он перерисовал бы и несохранённые поля ниже
 function pickIcon(i, k, btn) {
   cfg.servers[i].icon = k;

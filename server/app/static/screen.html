@@ -332,6 +332,9 @@ button:focus-visible, [role="button"]:focus-visible { outline:2px solid var(--ac
 .we-task.working .icon { color: var(--blue); animation: spin .8s linear infinite; }
 .we-meeting .icon { font-size: 14px; }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* Принтер */
+.pr-card { cursor: pointer; border-left: 3px solid var(--panel2); }
+.pr-active .icon { color: var(--blue); animation: spin .8s linear infinite; }
 </style>
 </head>
 <body>
@@ -398,7 +401,7 @@ const backBar = (title, right = "") => `<div class="top"><button class="back" on
 
 function navigationMenu() {
   if (!view.menu) return '';
-  return `<nav class="codex-nav" aria-label="Разделы"><div class="nav-list" data-scroll="menu">${[['claude',data.usage_provider === 'claude' ? 'Claude' : 'Codex'],['servers','Серверы'],['docker','Docker'],['home','Сводка'],['music','Музыка'],['weeek','Задачи'],['usage','Графики'],...spaceTabs()].map(([name,label]) => `<button onclick="go({name:'${name}',back:{name:'claude'}})">${label}</button>`).join('')}</div><div class="nav-pager"><button aria-label="Меню вверх" onclick="scrollMenu(-1)">↑</button><button aria-label="Меню вниз" onclick="scrollMenu(1)">↓</button></div></nav>`;
+  return `<nav class="codex-nav" aria-label="Разделы"><div class="nav-list" data-scroll="menu">${[['claude',data.usage_provider === 'claude' ? 'Claude' : 'Codex'],['servers','Серверы'],['docker','Docker'],['home','Сводка'],['music','Музыка'],['weeek','Задачи'],['printer','Принтер'],['usage','Графики'],...spaceTabs()].map(([name,label]) => `<button onclick="go({name:'${name}',back:{name:'claude'}})">${label}</button>`).join('')}</div><div class="nav-pager"><button aria-label="Меню вверх" onclick="scrollMenu(-1)">↑</button><button aria-label="Меню вниз" onclick="scrollMenu(1)">↓</button></div></nav>`;
 }
 function spaceTabs() {
   return [['iss','МКС','show_iss'],['spaceweather','Космос','show_spaceweather']]
@@ -795,6 +798,38 @@ function weeekView() {
   return h;
 }
 
+// ---- Weeek конец, принтер ----
+function printerView() {
+  const p = data.printer || {};
+  if (!p.enabled) {
+    return tabs() + `<div class="body" data-scroll="printer"><div class="empty"><b>Принтер не подключён</b><div class="sub">Включите в /admin → Принтер и укажите адрес Moonraker (по умолчанию http://localhost:7125).</div></div></div>`;
+  }
+  const job = p.job || {}, temps = p.temps || {}, info = p.info || {};
+  const printing = job.state === 'printing' || job.state === 'paused';
+  let h = tabs() + `<div class="body" data-scroll="printer">`;
+  if (p.err) {
+    h += `<div class="card red"><div class="icon">!</div><div class="main"><div class="name">Ошибка принтера</div><div class="sub">${esc(p.err)}</div></div></div>`;
+  }
+  h += `<div class="sec">Принтер${printing ? ' · печать' : ''}</div>`;
+  h += `<div class="card"><div class="icon ${printing ? 'working' : 'idle'}">${printing ? '◐' : '○'}</div><div class="main"><div class="name">${job.filename || 'без файла'}${info.software_version ? ' · ' + esc(info.software_version) : ''}</div><div class="sub">${job.state === 'idle' ? 'без дела' : (job.state === 'printing' ? 'печатает' : (job.state === 'paused' ? 'пауза' : (job.state === 'error' ? 'ошибка' : job.state)))}</div></div>`;
+  if (printing) {
+    h += `<div style="flex:1;min-width:0"><div class="bar" style="margin-top:4px"><i style="width:${job.progress || 0}%;background:var(--accent)"></i></div><div class="sub">${job.progress || 0}% · осталось ${job.print_time_remaining ? Math.round(job.print_time_remaining / 60) : '—'} мин · уже ${job.print_time ? Math.round(job.print_time / 60) : '0'} мин</div></div>`;
+    h += `<div class="mbt">${cmdBtn('printer_pause', printing ? 'пауза' : 'продолжить')}${cmdBtn('printer_cancel', 'отмена')}</div>`;
+  }
+  h += `</div>`;
+  h += `<div class="sec">Температуры</div>`;
+  h += `<div class="grid">`;
+  const bed = temps.bed || {}, ext = temps.extruder || {};
+  h += `<div class="btn"><div class="faint" style="font-size:9px">Стол</div><div style="font-weight:700;font-size:16px">${bed.actual || 0}°</div><div class="faint" style="font-size:9px">цель ${bed.target || 0}°</div></div>`;
+  h += `<div class="btn"><div class="faint" style="font-size:9px">Сопло</div><div style="font-weight:700;font-size:16px">${ext.actual || 0}°</div><div class="faint" style="font-size:9px">цель ${ext.target || 0}°</div></div>`;
+  h += `</div>`;
+  h += `<div class="space-source">Moonraker ${p.err ? 'ошибка: ' + esc(p.err) : ago(p.t || data.now) + ' назад'}</div></div>`;
+  return h;
+}
+function cmdBtn(act, label) {
+  return `<div class="btn ok small" onclick="act({a:'${act}'})">${esc(label)}</div>`;
+}
+
 // ---- сводка: часы, погода, курсы, включение компьютеров ----
 const WX = {
   sun: '<circle cx="12" cy="12" r="5" fill="var(--yellow)"/><g stroke="var(--yellow)" stroke-width="2">' + [0, 45, 90, 135, 180, 225, 270, 315].map(a => `<line x1="12" y1="2" x2="12" y2="4.5" transform="rotate(${a} 12 12)"/>`).join("") + "</g>",
@@ -870,7 +905,7 @@ function render(force) {
   if (data.perms.length) h = permView(data.perms[0]);
   else h = ({ claude: claudeView, servers: serversView, session: sessionView, server: serverView, output: outputView,
               usage: usageView, containers: containersView, container: containerView, home: homeView, docker: dockerView, music: musicView,
-              iss: issView, spaceweather: spaceweatherView, weeek: weeekView }[view.name] || claudeView)();
+              iss: issView, spaceweather: spaceweatherView, weeek: weeekView, printer: printerView }[view.name] || claudeView)();
   if (data.alert.active && !data.perms.length) {
     h += `<div class="alert">⚠ ${esc(data.alert.text)}<div class="btn" onclick='act({a:"ack"})'>Понятно</div></div>`;
   }

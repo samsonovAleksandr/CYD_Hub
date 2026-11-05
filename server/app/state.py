@@ -40,6 +40,7 @@ SCREEN_DEFAULTS = {
 }
 DASH_DEFAULTS = {"city": "Москва", "lat": 55.7558, "lon": 37.6173, "rates": "USD,EUR,CNY"}
 WEEEEK_DEFAULTS = {"enabled": False, "token": "", "refresh_s": 120, "days": 7}
+PRINTER_DEFAULTS = {"enabled": False, "url": "http://localhost:7125", "refresh_s": 5}
 
 
 # ---- темы экрана -------------------------------------------------------------
@@ -134,7 +135,7 @@ class Config:
         d.setdefault("usage_provider", "codex")
         d.setdefault("theme", {"preset": "night"})
         d.setdefault("wol", [])
-        for key, defaults in (("screen", SCREEN_DEFAULTS), ("dashboard", DASH_DEFAULTS), ("weeek", WEEEEK_DEFAULTS)):
+        for key, defaults in (("screen", SCREEN_DEFAULTS), ("dashboard", DASH_DEFAULTS), ("weeek", WEEEEK_DEFAULTS), ("printer", PRINTER_DEFAULTS)):
             d.setdefault(key, {})
             for k, v in defaults.items():
                 d[key].setdefault(k, v)
@@ -163,6 +164,8 @@ class Config:
             s["ssh_key_set"] = bool(s.pop("ssh_key", ""))
         w = d.setdefault("weeek", {})
         w["token_set"] = bool(w.pop("token", ""))
+        p = d.setdefault("printer", {})
+        p["url_set"] = bool(p.pop("url", ""))
         return d
 
     def update(self, new):
@@ -222,6 +225,19 @@ class Config:
             try:
                 w["refresh_s"] = max(30, min(3600, int(src.get("refresh_s", w["refresh_s"]))))
                 w["days"] = max(1, min(30, int(src.get("days", w["days"]))))
+            except (TypeError, ValueError):
+                pass
+        if "printer" in new:
+            p = self.data.setdefault("printer", dict(PRINTER_DEFAULTS))
+            src = new.get("printer") or {}
+            if "enabled" in src:
+                p["enabled"] = bool(src["enabled"])
+            if src.get("url_clear"):
+                p["url"] = ""
+            elif str(src.get("url") or "").strip():
+                p["url"] = str(src["url"]).strip()[:300]
+            try:
+                p["refresh_s"] = max(2, min(300, int(src.get("refresh_s", p["refresh_s"]))))
             except (TypeError, ValueError):
                 pass
         sc = self.data["screen"]
