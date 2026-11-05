@@ -23,8 +23,10 @@ def to_rgb565(png):
 
 
 class Screen:
-    def __init__(self, url):
+    def __init__(self, url, rotation=lambda: 0):
         self.url = url
+        self.get_rotation = rotation
+        self.rotation = 0                 # orientation of the last captured frame
         self.page = None
         self.png = b""                     # для превью в /admin
         self.cur = None                    # текущий кадр, uint16[H, W]
@@ -47,6 +49,15 @@ class Screen:
     async def _snap(self):
         async with self._lock:
             png = await self.page.screenshot(type="png")
+            rotation = self.get_rotation()
+            if rotation == 180:
+                with Image.open(io.BytesIO(png)) as source:
+                    output = io.BytesIO()
+                    source.transpose(Image.Transpose.ROTATE_180).save(output, format="PNG")
+                    png = output.getvalue()
+            if rotation != self.rotation:
+                self._down = None         # discard a gesture across an orientation change
+                self.rotation = rotation
         img = to_rgb565(png)
         if self.cur is not None and np.array_equal(img, self.cur):
             return
@@ -95,6 +106,8 @@ class Screen:
         """down / move / up. Клик — при отпускании без движения, движение — прокрутка."""
         m = self.page.mouse
         async with self._lock:
+            if self.rotation == 180:
+                x, y = W - 1 - x, H - 1 - y
             if kind == "down":
                 self._down = [x, y, False, y]
                 await m.move(x, y)

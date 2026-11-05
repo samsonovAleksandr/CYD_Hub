@@ -18,7 +18,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-from . import extras, monitor
+from . import extras, monitor, space
 from .render import Screen
 from .state import DATA, FONTS, THEMES, claude, config, new_token, resolve_theme, signals
 
@@ -27,7 +27,7 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 
 app = FastAPI(docs_url=None, redoc_url=None)
-screen = Screen(f"http://127.0.0.1:{PORT}/screen")
+screen = Screen(f"http://127.0.0.1:{PORT}/screen", lambda: config.data["screen"]["rotation"])
 basic = HTTPBasic(auto_error=False)
 
 
@@ -56,6 +56,8 @@ def ping():
 
 @app.post("/event", dependencies=[Depends(token_ok)])
 async def event(req: Request):
+    if config.data.get("usage_provider", "codex") != "claude":
+        raise HTTPException(409, "Claude event bridge disabled in Codex limits mode")
     claude.event(await req.json())
     screen.kick.set()
     return {}
@@ -63,6 +65,8 @@ async def event(req: Request):
 
 @app.post("/perm", dependencies=[Depends(token_ok)])
 async def perm_new(req: Request):
+    if config.data.get("usage_provider", "codex") != "claude":
+        raise HTTPException(409, "Use the Codex app for approvals")
     claude.perm_new(await req.json())
     signals.play("perm", wake=True)
     screen.kick.set()
@@ -82,7 +86,9 @@ def perm_cancel(id: str):
 
 @app.post("/usage", dependencies=[Depends(token_ok)])
 async def usage(req: Request):
-    claude.set_usage(await req.json())
+    if not claude.set_usage(await req.json()):
+        raise HTTPException(409, "Usage provider disabled; check Hub settings and stop the old watcher")
+    screen.kick.set()
     return {}
 
 
@@ -257,7 +263,7 @@ def server_view(s):
 def usage_history():
     """5 ч — за сутки, неделя — за 7 дней; не больше ~150 точек на график."""
     now = time.time()
-    day = [(int(t), a) for t, a, _ in claude.hist if now - t < 86400]
+    day = [(int(t), a) for t, a, _ in claude.hist if now - t < 86400 and a >= 0]
     week = [(int(t), b) for t, _, b in claude.hist if now - t < 7 * 86400 and b >= 0]
     thin = lambda pts: pts[::max(1, len(pts) // 150)]
     return {"day": thin(day), "week": thin(week)}
@@ -269,6 +275,7 @@ def ui():
     return {
         "now": time.time(),
         "usage": claude.usage, "stale_s": config.data["usage_stale_min"] * 60,
+        "usage_provider": config.data.get("usage_provider", "codex"),
         "sessions": sorted(claude.sessions.values(), key=lambda s: -s["t"]),
         "perms": claude.pending(),
         "servers": [server_view(s) for s in config.data["servers"]],
@@ -279,6 +286,8 @@ def ui():
         "theme": resolve_theme(config.data["theme"]),
         "forecast": claude.forecast(), "usage_hist": usage_history(), "today": claude.today(),
         "weather": extras.weather, "rates": extras.rates, "media": media or None,
+        "space": space.public(),
+        "space_screens": {key: config.data["screen"][key] for key in ("show_iss", "show_spaceweather", "iss_interval_s")},
         "wol": [{"name": w["name"]} for w in config.data["wol"]],
         "saver": {"after": config.data["screen"]["saver_after_s"], "period": config.data["screen"]["saver_period_s"]},
     }
@@ -330,6 +339,7 @@ def get_config():
 async def put_config(req: Request):
     old_dash = dict(config.data["dashboard"])
     config.update(await req.json())
+    space.refresh()
     monitor.check_now()
     if config.data["dashboard"] != old_dash:
         extras.refresh()
@@ -418,6 +428,7 @@ async def startup():
     asyncio.create_task(monitor.loop())
     asyncio.create_task(signal_loop())
     asyncio.create_task(extras.loop())
+    asyncio.create_task(space.loop())
     # браузер стартует после того, как uvicorn начнёт отвечать
     async def later():
         await asyncio.sleep(1)

@@ -45,6 +45,30 @@ html, body { width: 320px; height: 240px; overflow: hidden; background: var(--bg
 .gauge .s { font-size: 10px; color: var(--dim); }
 .src { font-size: 10px; color: var(--faint); text-align: center; margin: 3px 0 5px; }
 
+/* Full-screen Codex quotas: fixed geometry for the 320×240 display. */
+.codex-full { position:absolute; inset:0; padding:12px 16px; background:#171717; color:#ececec;
+  font:12px/1.3 Inter, "DejaVu Sans", sans-serif; }
+.codex-head { display:flex; align-items:center; justify-content:space-between; height:24px; margin-bottom:8px; }
+.codex-menu { border:0; background:transparent; color:inherit; font:600 15px Inter,sans-serif;
+  display:flex; gap:8px; align-items:center; min-height:28px; cursor:pointer; }
+.codex-menu:focus-visible { outline:2px solid #ececec; outline-offset:2px; }
+.codex-mark { font:700 18px monospace; letter-spacing:-3px; padding-right:3px; }
+.codex-head small { color:#a3a3a3; font-size:10px; }
+.codex-quota { height:78px; padding:6px 0 8px; }
+.codex-quota + .codex-quota { border-top:1px solid #303030; padding-top:10px; height:82px; }
+.codex-value { display:flex; align-items:baseline; justify-content:space-between; }
+.codex-value span { font-size:13px; font-weight:500; }
+.codex-value b { font-size:30px; font-weight:500; line-height:1; letter-spacing:-1px; font-variant-numeric:tabular-nums; }
+.codex-track { height:6px; margin:8px 0 6px; border-radius:4px; background:#383838; overflow:hidden; }
+.codex-track i { display:block; height:100%; background:#dedede; border-radius:4px; }
+.codex-reset { color:#a3a3a3; font-size:10px; }
+.codex-foot { position:absolute; bottom:10px; left:16px; right:16px; color:#a3a3a3;
+  display:flex; justify-content:space-between; font-size:9px; gap:5px; }
+.codex-foot.stale { color:#f5b942; }
+.codex-nav { position:absolute; inset:42px 10px auto; z-index:5; background:#262626;
+  border:1px solid #444; border-radius:10px; padding:6px; display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.codex-nav button { background:#333; border:0; border-radius:6px; color:#eee; padding:14px 6px; font:12px Inter,sans-serif; }
+
 /* карточки */
 .card { background: var(--panel); border-radius: var(--radius); padding: 6px 8px; margin-bottom: 5px;
   display: flex; gap: 8px; align-items: center; }
@@ -174,6 +198,132 @@ pre.out { font: 10px/1.3 var(--mono, "DejaVu Sans Mono"), monospace; white-space
 [data-theme="claude"] .tab.on { color: var(--accent); }
 [data-theme="claude"] .card { border-left: 2px solid var(--accent); }
 [data-theme="paper"] .card, [data-theme="paper"] .gauge { border: 1px solid var(--line); }
+/* Shared display system: quiet surfaces, clear hierarchy, touch-sized controls. */
+.top { height:36px; padding:0 10px; background:var(--bg); border-bottom:1px solid var(--line); }
+.screen-title { display:flex; align-items:center; gap:7px; border:0; background:none; color:var(--text);
+  font:600 14px var(--font); min-height:32px; cursor:pointer; }
+.screen-title small { font-size:9px; color:var(--dim); }
+.screen-state { margin-left:auto; font-size:10px; color:var(--dim); }
+.clock { font-size:11px; font-weight:500; color:var(--dim); margin-left:8px; }
+.body { top:36px; padding:8px; }
+.back { border:0; background:none; color:var(--text); font:600 13px var(--font); max-width:235px; cursor:pointer; }
+.card, .chart { padding:9px 10px; border:1px solid var(--line); border-radius:10px; margin-bottom:7px; }
+.card .name { font-size:13px; font-weight:600; }
+.card .sub { margin-top:3px; line-height:1.4; }
+.card .meta { font-size:9px; }
+.tile { border-radius:12px; background:var(--panel); border-color:var(--line); gap:5px; }
+.tile .ic { color:var(--dim); }
+.tile .dot { top:9px; right:9px; width:6px; height:6px; }
+.tile.down { border-color:color-mix(in srgb,var(--red) 55%,var(--line)); }
+.tiles .nm { font-weight:600; }
+.bars { gap:10px; margin-top:6px; }
+.bar i { height:5px; margin-top:3px; }
+.bar span { font-size:9px; }
+.minis { gap:6px; margin:8px 0; }
+.mini { padding:6px; border:1px solid var(--line); border-radius:8px; }
+.btn { min-height:34px; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:8px; font-weight:500; }
+.btn.small { min-height:28px; }
+.btn.danger { color:var(--red); background:color-mix(in srgb,var(--red) 8%,var(--panel)); }
+.grid { gap:7px; }
+.ctr { min-height:39px; padding:8px 10px; border:1px solid var(--line); border-radius:9px; margin-bottom:6px; }
+.ctr .name { font-size:12px; }
+.ctr .st { max-width:100px; font-size:9px; }
+.dk { gap:7px; }
+.dk > div { padding:9px; border:1px solid var(--line); border-left:3px solid var(--hc); border-radius:9px; min-height:53px; }
+.dk b { font-size:12px; margin-bottom:4px; }
+.dk span { line-height:1.4; }
+.src { margin:2px 0 8px; }
+.chart .h { margin-bottom:5px; }
+.sec { font-size:10px; color:var(--dim); letter-spacing:.07em; margin:10px 0 5px; }
+.empty { padding:42px 16px 12px; font-size:11px; line-height:1.6; }
+.empty b { font-size:15px; font-weight:500; margin-bottom:8px; }
+.home-top { padding:2px 2px 9px; align-items:center; }
+.big-clock { font-size:37px; font-weight:500; letter-spacing:-1.5px; }
+.date { font-size:10px; line-height:1.5; }
+.wx { border:1px solid var(--line); padding:7px 9px; border-radius:10px; }
+.wx .temp { font-size:24px; font-weight:500; }
+.wx svg { width:30px; height:30px; }
+.hours { gap:4px; margin-top:6px; }
+.hour { background:none; padding:4px 0; border-radius:7px; line-height:1.35; }
+.hour svg { margin:3px auto; width:16px; height:16px; }
+.rate { background:var(--panel); padding:6px; border-radius:7px; gap:3px; font-size:9px; }
+.rate b { font-size:11px; font-weight:600; }
+.rate > span:last-child { font-size:8px; }
+.mu { padding:2px 0; gap:12px; }
+.mu .cv { width:86px; height:86px; border:1px solid var(--line); border-radius:12px; }
+.mu .tt { font-size:15px; font-weight:600; }
+.mu .ar { font-size:11px; margin-top:5px; }
+.mu .ap { padding:3px 6px; border-radius:4px; }
+.mpr { margin:9px 0 0; }
+.mpr i { height:3px; }
+.mbt { gap:22px; margin-top:5px; }
+.mbt div { width:38px; height:38px; background:none; }
+.mbt .pp { width:44px; height:44px; background:var(--text); color:var(--bg); }
+.confirm { inset:36px 0 0; gap:12px; }
+.confirm .btn { min-height:40px; }
+.codex-nav { background:var(--panel); border-color:var(--line); top:40px; }
+.codex-nav button { background:var(--panel2); color:var(--text); min-height:36px; padding:10px 6px; }
+button:focus-visible, [role="button"]:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+/* Keep dashboard content inside the physical 320×240 viewport. */
+.top { height:28px; padding:0 8px; }
+.screen-title { min-height:27px; font-size:13px; }
+.body { top:28px; padding:6px; }
+.card, .chart { padding:6px 8px; margin-bottom:5px; }
+.card .name { font-size:12px; }
+.back { font-size:12px; }
+.confirm { top:28px; }
+.codex-nav { top:32px; }
+.codex-full .codex-nav { top:40px; }
+.dk { gap:5px; }
+.dk > div { padding:7px 8px; min-height:48px; }
+.dk b { margin-bottom:2px; font-size:11px; }
+.home-top { padding:0 2px 5px; }
+.big-clock { font-size:32px; }
+.wx { padding:5px 8px; gap:6px; }
+.wx .temp { font-size:21px; }
+.wx svg { width:25px; height:25px; }
+.hours { margin-top:4px; }
+.hour { padding:1px 0; line-height:11px; }
+.hour svg { width:14px; height:14px; margin:1px auto; }
+.rates { margin-top:4px; gap:4px; }
+.rate { padding:4px 5px; }
+.wols { margin-top:4px; gap:4px; }
+.wols .btn { min-height:28px; padding:4px; font-size:11px; }
+[data-scroll="usage"] .chart svg { height:40px; }
+[data-scroll="usage"] .chart .h { margin-bottom:2px; }
+[data-scroll="usage"] .chart .s { line-height:12px; }
+[data-scroll^="server:"] { font-size:10px; padding:4px 6px; }
+[data-scroll^="server:"] .bars { margin-top:4px; }
+[data-scroll^="server:"] .bar i { margin-top:1px; height:4px; }
+[data-scroll^="server:"] .minis { margin:3px 0; gap:4px; }
+[data-scroll^="server:"] .mini { padding:3px 4px; }
+[data-scroll^="server:"] .mini svg { height:14px; }
+[data-scroll^="server:"] .mini span { display:block; font-size:8px; line-height:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+[data-scroll^="server:"] .grid { gap:4px; margin-top:4px; }
+[data-scroll^="server:"] .grid .btn { min-height:28px; padding:4px; font-size:10px; }
+[data-scroll^="server:"] .card { padding:3px 7px; }
+[data-scroll^="server:"] .card .name { font-size:11px; }
+.codex-nav { bottom:8px; display:flex; flex-direction:column; gap:6px; }
+.nav-list { min-height:0; flex:1; overflow-y:auto; overscroll-behavior:contain; display:grid;
+  grid-template-columns:1fr 1fr; grid-auto-rows:40px; gap:5px; touch-action:pan-y; }
+.nav-list::-webkit-scrollbar { width:3px; }
+.nav-list::-webkit-scrollbar-thumb { background:var(--dim); border-radius:3px; }
+.nav-pager { display:flex; gap:6px; flex:none; }
+.nav-pager button { flex:1; min-height:26px; padding:3px; font-size:13px; }
+.orbit-map { width:100%; height:96px; display:block; border:1px solid var(--line); border-radius:9px; background:var(--panel); }
+.space-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:6px; }
+.space-stat { background:var(--panel); border:1px solid var(--line); border-radius:7px; padding:5px 6px; }
+.space-stat b { display:block; font-size:14px; font-weight:500; }
+.space-stat small { color:var(--dim); font-size:9px; }
+.space-note { color:var(--dim); font-size:10px; margin-top:7px; }
+.space-source { color:var(--faint); font-size:9px; margin-top:7px; display:flex; justify-content:space-between; }
+.kp-hero { display:flex; gap:10px; align-items:center; padding:2px 4px 6px; }
+.kp-hero b { font-size:38px; line-height:1; font-weight:500; }
+.kp-hero span { font-size:12px; }
+.kp-hero small { display:block; color:var(--dim); font-size:9px; margin-top:3px; }
+.kp-chart { padding:5px 7px; border:1px solid var(--line); background:var(--panel); border-radius:8px; }
+.kp-chart svg { width:100%; height:51px; display:block; }
+.kp-chart small { color:var(--dim); font-size:9px; }
 </style>
 </head>
 <body>
@@ -211,7 +361,7 @@ function saverTick() {
   const idle = (Date.now() - lastTouch) / 1000;
   if (idle < data.saver.after || Date.now() - saverAt < data.saver.period * 1000) return;
   saverAt = Date.now();
-  const order = ["home", "claude", "servers", "docker"];
+  const order = ["home", "claude", "servers", "docker", ...spaceTabs().map(([name]) => name)];
   saverIdx = (order.indexOf(view.name) + 1) % order.length;
   view = { name: order[saverIdx] };
   render(true);
@@ -231,12 +381,26 @@ function line(pts, t0, t1, max, col, w = 300, h = 56, fill = true) {
 // ---- шапка -----------------------------------------------------------------------
 function tabs() {
   const down = data.servers.filter(s => s.health === "down").length;
-  const t = (name, label, extra = "") => `<div class="tab ${view.name === name ? "on" : ""}" onclick="go({name:'${name}'})">${label}${extra}</div>`;
-  const dkBad = watched().filter(w => w.bad).length, mus = musicOn();
-  return `<div class="top">${t("claude", "Claude")}${t("servers", "Серверы", down ? `<span class="badge">${down}</span>` : "")}${t("docker", "Docker", dkBad ? `<span class="badge">${dkBad}</span>` : "")}${t("home", "Сводка")}${mus ? t("music", NOTE) : ""}
-    ${view.name === "home" || (down && dkBad) || mus ? "" : `<div class="clock">${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</div>`}</div>`;
+  const dkBad = watched().filter(w => w.bad).length;
+  const title = {claude:data.usage_provider === 'claude' ? 'Claude' : 'Codex',servers:'Серверы',docker:'Docker',home:'Сводка',music:'Музыка',iss:'МКС',spaceweather:'Космическая погода'}[view.name] || 'CYD';
+  const state = view.name === 'servers' ? `${data.servers.length - down}/${data.servers.length} в сети` : view.name === 'docker' ? (dkBad ? `${dkBad} с ошибкой` : 'Мониторинг') : '';
+  return `<header class="top"><button class="screen-title" aria-label="Открыть разделы" aria-expanded="${!!view.menu}" onclick="view.menu=!view.menu;touched();render(true)">${title}<small>⌄</small></button><span class="screen-state ${down && view.name === 'servers' || dkBad && view.name === 'docker' ? 'red' : ''}">${state}</span>${view.name === 'home' ? '' : `<span class="clock">${hm(data.now)}</span>`}</header>${navigationMenu()}`;
 }
-const backBar = (title, right = "") => `<div class="top"><div class="back" onclick="go(${esc(JSON.stringify(view.back || { name: "claude" }))})">${BACK}<span class="ell" style="max-width:180px">${esc(title)}</span></div><div style="margin-left:auto">${right}</div></div>`;
+const backBar = (title, right = "") => `<div class="top"><button class="back" onclick="go(${esc(JSON.stringify(view.back || { name: "claude" }))})">${BACK}<span class="ell" style="max-width:180px">${esc(title)}</span></button><div style="margin-left:auto">${right}</div></div>`;
+
+function navigationMenu() {
+  if (!view.menu) return '';
+  return `<nav class="codex-nav" aria-label="Разделы"><div class="nav-list" data-scroll="menu">${[['claude',data.usage_provider === 'claude' ? 'Claude' : 'Codex'],['servers','Серверы'],['docker','Docker'],['home','Сводка'],['music','Музыка'],['usage','Графики'],...spaceTabs()].map(([name,label]) => `<button onclick="go({name:'${name}',back:{name:'claude'}})">${label}</button>`).join('')}</div><div class="nav-pager"><button aria-label="Меню вверх" onclick="scrollMenu(-1)">↑</button><button aria-label="Меню вниз" onclick="scrollMenu(1)">↓</button></div></nav>`;
+}
+function spaceTabs() {
+  return [['iss','МКС','show_iss'],['spaceweather','Космос','show_spaceweather']]
+    .filter(([, , flag]) => data.space_screens?.[flag] !== false);
+}
+function scrollMenu(direction) {
+  const menu = app.querySelector('.nav-list');
+  if (menu) menu.scrollTop += direction * 80;
+  touched();
+}
 
 // ---- Claude -----------------------------------------------------------------------
 function gauge(label, pct, reset, stale, fc) {
@@ -257,21 +421,32 @@ function ring(p, col) {
     ${p > 0 ? `<circle cx="25" cy="25" r="20" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round"
       stroke-dasharray="${c * Math.min(p, 100) / 100} ${c}"/>` : ""}</svg>`;
 }
+function quotaWindows(u) {
+  if (u?.provider === "codex") return u.windows || [];
+  return [{label:"5 часов", used:u?.five, reset:u?.fiveReset, minutes:300},
+          {label:"Неделя", used:u?.week, reset:u?.weekReset, minutes:10080}];
+}
+function quotaForecast(w) {
+  return data.forecast[w.minutes === 300 ? "five" : w.minutes === 10080 ? "week" : ""];
+}
 function claudeView() {
+  if (data.usage_provider !== "claude") return codexFullView();
   const u = data.usage, age = u ? data.now - u.t : 0, stale = u && age > data.stale_s;
   let h = tabs() + `<div class="body" data-scroll="claude"><div class="gauges" onclick="go({name:'usage',back:{name:'claude'}})">`;
-  h += gauge("5 часов", u?.five, u?.fiveReset, stale, data.forecast.five) + gauge("Неделя", u?.week, u?.weekReset, stale, data.forecast.week) + "</div>";
+  h += quotaWindows(u).map(w => gauge(esc(w.label), w.used, w.reset, stale, quotaForecast(w))).join("") + "</div>";
+  const codex = data.usage_provider !== "claude";
   // Desktop пишет замер только при запуске, терминал — после каждого ответа: подсказываем, как освежить
   const desk = u && u.model === "Claude Desktop";
   if (u) {
-    const src = desk ? "Claude Desktop" : "терминал" + (u.model ? ", " + esc(u.model) : "");
+    const src = u.provider === "codex" ? "Codex" + (u.plan ? " · " + esc(u.plan) : "") : desk ? "Claude Desktop" : "терминал" + (u.model ? ", " + esc(u.model) : "");
     const at = desk ? "замер " + (age > 72000 ? wd(u.t) + " " : "в ") + hm(u.t) : ago(u.t) + " назад";
     h += `<div class="src ${stale ? "yellow" : ""}">${src}${u.ctx >= 0 ? " · контекст " + u.ctx + "%" : ""} · ${stale ? "устарело, " : ""}${at}</div>`;
-    if (stale) h += `<div class="src">${desk ? "обновить: перезапустить Desktop или claude в терминале" : "обновится после ответа claude в терминале"}</div>`;
-  } else h += `<div class="src">лимиты появятся из Claude Desktop или claude в терминале</div>`;
+    h += `<div class="src">израсходовано за окно${u.provider === "codex" && !u.windows?.length ? " · окна не предоставлены" : ""}</div>`;
+    if (stale) h += `<div class="src">${codex ? "проверьте мост codex_cyd.py watch" : desk ? "обновить: перезапустить Desktop или claude в терминале" : "обновится после ответа claude в терминале"}</div>`;
+  } else h += `<div class="src">${codex ? "ожидаю лимиты Codex · запустите мост" : "ожидаю лимиты Claude"}</div>`;
   const td = data.today;
-  if (td.prompts || td.tools) h += `<div class="stat">сегодня: ${td.prompts} запр. · ${td.sessions} сесс. · ${td.tools} действий · разрешено ${td.allowed}${td.denied ? ", запрещено " + td.denied : ""}</div>`;
-  if (!data.sessions.length) h += `<div class="empty" style="padding-top:20px"><b>Сессий пока нет</b>bridge/claude_cyd.py install</div>`;
+  if (!codex && (td.prompts || td.tools)) h += `<div class="stat">сегодня: ${td.prompts} запр. · ${td.sessions} сесс. · ${td.tools} действий · разрешено ${td.allowed}${td.denied ? ", запрещено " + td.denied : ""}</div>`;
+  if (!data.sessions.length) h += `<div class="empty" style="padding-top:12px">${codex ? "Мост Codex передаёт лимиты.<br>Чаты и разрешения — в приложении." : "Сессий пока нет"}</div>`;
   for (const s of data.sessions) {
     const [st, col] = STATE[s.state] || STATE.idle;
     h += `<div class="card" onclick='go({name:"session",sid:${JSON.stringify(s.sid)},back:{name:"claude"}})'>
@@ -282,17 +457,43 @@ function claudeView() {
   return h + "</div>";
 }
 // ---- лимиты подробно: графики и прогноз ----
+function codexFullView() {
+  const u = data.usage, stale = u && data.now - u.t > data.stale_s;
+  const windows = quotaWindows(u);
+  const quota = (minutes, label) => {
+    const w = windows.find(w => w.minutes === minutes);
+    const expired = w?.reset && w.reset <= data.now;
+    const valid = w && Number.isFinite(w.used) && w.used >= 0 && !expired;
+    const p = valid ? Math.round(w.used) : null;
+    const reset = expired ? "окно сброшено · ожидаю обновление" : !valid ? "нет данных"
+      : w.reset ? `Сброс ${when(w.reset)} · через ${dur(w.reset - data.now)}` : "Время сброса неизвестно";
+    return `<section class="codex-quota" aria-label="${label}"><div class="codex-value"><span>${label}</span><b>${p == null ? "—" : p + "%"}</b></div>
+      <div class="codex-track" role="progressbar" aria-label="${label}: израсходовано" ${valid ? `aria-valuenow="${p}"` : 'aria-valuetext="нет данных"'} aria-valuemin="0" aria-valuemax="100"><i style="width:${valid ? Math.min(p, 100) : 0}%;${stale ? 'background:#737373' : p >= 90 ? 'background:#ef7777' : ''}"></i></div>
+      <div class="codex-reset">${reset}</div></section>`;
+  };
+  const status = !u ? "ожидаю лимиты Codex" : stale ? "устарело · проверьте мост codex_cyd.py watch" : `Обновлено ${ago(u.t)} назад`;
+  const extra = windows.filter(w => ![300, 10080].includes(w.minutes));
+  const note = !u ? "" : !windows.length ? "окна не предоставлены" : extra.map(w => `${esc(w.label)}: ${Math.round(w.used)}%`).join(" · ");
+  const nav = navigationMenu();
+  return `<main class="codex-full"><header class="codex-head"><button class="codex-menu" aria-label="Открыть разделы" aria-expanded="${!!view.menu}" onclick="go({name:'claude',menu:${!view.menu}})"><span class="codex-mark" aria-hidden="true">&gt;_</span>Codex<span style="font-size:10px;color:#a3a3a3">⌄</span></button><small>Израсходовано</small></header>
+    ${quota(300, '5 часов')}${quota(10080, 'Неделя')}
+    <footer class="codex-foot ${stale ? 'stale' : ''}"><span>${status}${note ? ' · ' + note : ''}</span></footer>${nav}</main>`;
+}
+
 function usageView() {
   const u = data.usage, f = data.forecast, H = data.usage_hist;
   let h = backBar("Лимиты") + `<div class="body" data-scroll="usage">`;
   const fcText = (fc, reset) => !fc ? "темп ещё не ясен" : !fc.rate_h ? "сейчас не тратится"
     : fc.before_reset ? `<span class="red">при ${fc.rate_h}%/ч кончится ~${when(fc.eta)}</span>`
     : `${fc.rate_h}%/ч — хватит до сброса${reset ? " " + when(reset) : ""}`;
-  h += `<div class="chart"><div class="h"><span>5 часов · ${u ? Math.round(u.five) + "%" : "—"}</span><span class="dim">сутки</span></div>
+  if (u?.five >= 0) h += `<div class="chart"><div class="h"><span>5 часов · ${Math.round(u.five)}%</span><span class="dim">сутки</span></div>
     ${line(H.day, data.now - 86400, data.now, 100, "var(--accent)")}<div class="s dim" style="font-size:10px">${fcText(f.five, u?.fiveReset)}</div></div>`;
-  h += `<div class="chart"><div class="h"><span>Неделя · ${u ? Math.round(u.week) + "%" : "—"}</span><span class="dim">7 дней</span></div>
+  if (u?.week >= 0) h += `<div class="chart"><div class="h"><span>Неделя · ${Math.round(u.week)}%</span><span class="dim">7 дней</span></div>
     ${line(H.week, data.now - 7 * 86400, data.now, 100, "var(--purple)")}<div class="s dim" style="font-size:10px">${fcText(f.week, u?.weekReset)}</div></div>`;
-  const top = data.today.projects;
+  for (const w of quotaWindows(u).filter(w => ![300, 10080].includes(w.minutes)))
+    h += gauge(esc(w.label), w.used, w.reset, data.now - u.t > data.stale_s);
+  if (!u || (u.provider === "codex" && !u.windows?.length)) h += `<div class="empty">Нет данных об окнах лимитов</div>`;
+  const top = data.usage_provider === "claude" ? data.today.projects : [];
   if (top.length) h += `<div class="sec">Сегодня по проектам</div>` + top.map(([n, c]) => `<div class="act">${esc(n)} — ${c} запр.</div>`).join("");
   return h + "</div>";
 }
@@ -351,7 +552,7 @@ function checks(s) {
 }
 // плитки: только иконка, имя и статус; тап — тот же экран сервера, что и из списка
 // tiles_cols = 0 (авто): столько колонок, чтобы все серверы влезли без прокрутки и плитки были крупнее
-const TW = 308, TH = 202, GAP = 6;     // место под плитки: экран минус шапка и отступы
+const TW = 308, TH = 200, GAP = 6;     // место под плитки: экран минус шапка и отступы
 function tileGrid(n) {
   const fit = c => { const r = Math.ceil(n / c); return Math.min((TW - GAP * (c - 1)) / c, (TH - GAP * (r - 1)) / r); };
   if (data.tiles_cols) { const c = Math.min(5, Math.max(2, data.tiles_cols)); return [c, (TW - GAP * (c - 1)) / c]; }
@@ -515,6 +716,36 @@ function musicView() {
     <div class="mbt">${B("prev", "prev", 20)}${B("toggle", playing ? "pause" : "play", 26, "pp")}${B("next", "next", 20)}</div></div>`;
 }
 
+function spaceSource(label, value, stale) {
+  return `<div class="space-source"><span>${label}</span><span>${value.err ? esc(value.err) : !value.t ? 'Подключение…' : (stale ? 'Устарело · ' : '') + ago(value.t) + ' назад'}</span></div>`;
+}
+function issView() {
+  const s = data.space?.iss || {t:0};
+  const stale = !s.t || data.now - s.t > Math.max(60, (data.space_screens?.iss_interval_s || 15) * 2);
+  let h = tabs() + `<div class="body" data-scroll="iss">`;
+  if (!s.t) return h + `<div class="empty"><b>Положение МКС</b>${s.err ? esc(s.err) : 'Загружаю данные…'}</div></div>`;
+  const x = (s.lon + 180) / 360 * 300, y = (90 - s.lat) / 180 * 96;
+  h += `<svg class="orbit-map" viewBox="0 0 300 96" role="img" aria-label="Положение МКС на карте мира" style="opacity:${stale ? '.5' : '1'}">
+    <path d="M0 24H300M0 48H300M0 72H300M50 0V96M100 0V96M150 0V96M200 0V96M250 0V96" fill="none" stroke="var(--line)" stroke-width=".5"/>
+    <g fill="var(--panel2)" stroke="var(--dim)" stroke-width=".4"><path d="M8 15 28 7 57 10 76 21 62 34 48 38 44 51 34 42 28 29 15 28Z M49 50 66 49 79 61 70 79 59 89 55 69Z M93 5 111 5 104 18 95 19Z M134 21 151 14 169 19 181 13 222 10 270 19 290 31 264 36 253 49 236 39 220 44 213 58 201 49 188 34 163 36 153 28 136 30Z M139 36 158 35 174 47 162 70 150 75 143 56Z M243 65 263 60 278 68 275 80 254 83Z"/></g>
+    <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="var(--accent)" opacity=".2"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5" fill="var(--accent)"/>
+  </svg><div class="space-stats"><div class="space-stat"><b>${Math.round(s.altitude)} км</b><small>Высота</small></div><div class="space-stat"><b>${Math.round(s.speed / 1000 * 10) / 10} тыс.</b><small>Скорость, км/ч</small></div><div class="space-stat"><b>${s.distance ?? '—'} км</b><small>По поверхности</small></div></div>
+  <div class="space-note">${Math.abs(s.lat).toFixed(1)}° ${s.lat >= 0 ? 'с.ш.' : 'ю.ш.'} · ${Math.abs(s.lon).toFixed(1)}° ${s.lon >= 0 ? 'в.д.' : 'з.д.'}</div>`;
+  return h + spaceSource('Where the ISS at?', s, stale) + '</div>';
+}
+function spaceweatherView() {
+  const s = data.space?.weather || {t:0};
+  const stale = !s.t || data.now - s.t > 21600;
+  let h = tabs() + `<div class="body" data-scroll="spaceweather">`;
+  if (!s.t) return h + `<div class="empty"><b>Космическая погода</b>${s.err ? esc(s.err) : 'Загружаю данные NOAA…'}</div></div>`;
+  const level = s.kp >= 9 ? 5 : s.kp >= 8 ? 4 : s.kp >= 7 ? 3 : s.kp >= 6 ? 2 : s.kp >= 5 ? 1 : 0;
+  const label = level ? 'Магнитная буря G' + level : s.kp >= 4 ? 'Возмущённое поле' : 'Спокойное поле';
+  h += `<div class="kp-hero"><b style="color:var(--${level ? 'yellow' : 'green'})">${s.kp.toFixed(1)}</b><span>${label}<small>Планетарный индекс Kp · шкала 0–9</small></span></div>
+    <div class="kp-chart">${line(s.points, s.t - 86400, s.t, 9, 'var(--accent)', 290, 51)}<small>Последние 24 часа · максимум ${s.peak.toFixed(1)}</small></div>
+    <div class="space-note">Наблюдения за трёхчасовой интервал.<br>Индекс не гарантирует видимость сияния.</div>`;
+  return h + spaceSource('NOAA SWPC', s, stale) + '</div>';
+}
+
 // ---- сводка: часы, погода, курсы, включение компьютеров ----
 const WX = {
   sun: '<circle cx="12" cy="12" r="5" fill="var(--yellow)"/><g stroke="var(--yellow)" stroke-width="2">' + [0, 45, 90, 135, 180, 225, 270, 315].map(a => `<line x1="12" y1="2" x2="12" y2="4.5" transform="rotate(${a} 12 12)"/>`).join("") + "</g>",
@@ -581,17 +812,30 @@ function render(force) {
   if (!data) return;
   applyTheme(data.theme);
   if (!view.name) view = { name: data.default_view };
+  if ((view.name === 'iss' && data.space_screens?.show_iss === false) ||
+      (view.name === 'spaceweather' && data.space_screens?.show_spaceweather === false)) view = {name:'claude'};
   // запоминаем прокрутку, чтобы перерисовка не сбрасывала её
   const scroll = {};
   app.querySelectorAll("[data-scroll]").forEach(e => scroll[e.dataset.scroll] = e.scrollTop);
   let h;
   if (data.perms.length) h = permView(data.perms[0]);
   else h = ({ claude: claudeView, servers: serversView, session: sessionView, server: serverView, output: outputView,
-              usage: usageView, containers: containersView, container: containerView, home: homeView, docker: dockerView, music: musicView }[view.name] || claudeView)();
+              usage: usageView, containers: containersView, container: containerView, home: homeView, docker: dockerView, music: musicView,
+              iss: issView, spaceweather: spaceweatherView }[view.name] || claudeView)();
   if (data.alert.active && !data.perms.length) {
     h += `<div class="alert">⚠ ${esc(data.alert.text)}<div class="btn" onclick='act({a:"ack"})'>Понятно</div></div>`;
   }
   app.innerHTML = h;
+  app.querySelectorAll('[onclick]:not(button):not(a)').forEach(e => {
+    e.setAttribute('role', 'button');
+    e.tabIndex = 0;
+    e.onkeydown = event => {
+      if (event.target === e && (event.key === 'Enter' || event.key === ' ')) {
+        event.preventDefault();
+        e.click();
+      }
+    };
+  });
   app.querySelectorAll("[data-scroll]").forEach(e => {
     if (scroll[e.dataset.scroll] != null) e.scrollTop = scroll[e.dataset.scroll];
     else if (view.name === "output") e.scrollTop = e.scrollHeight;   // вывод команды — сразу конец

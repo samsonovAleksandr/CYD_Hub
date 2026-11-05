@@ -59,7 +59,7 @@ pre { background: var(--bg); padding: 8px; border-radius: 8px; overflow-x: auto;
 <main>
   <div>
     <h1>CYD Hub</h1>
-    <div class="sub" style="margin-bottom:16px">Настольный экран: Claude Code, серверы, команды. Всё, что на экране, настраивается здесь.</div>
+    <div class="sub" style="margin-bottom:16px">Настольный экран: Codex, серверы, команды. Всё, что на экране, настраивается здесь.</div>
 
     <section>
       <h2>Стиль экрана</h2>
@@ -97,16 +97,28 @@ pre { background: var(--bg); padding: 8px; border-radius: 8px; overflow-x: auto;
         <div><label>Проверять серверы, с</label><input id="check_interval" type="number" min="5"></div>
         <div><label>Нагрузка по SSH, с</label><input id="stats_interval" type="number" min="10"></div>
         <div><label>Неудач подряд до «лежит»</label><input id="fails_to_down" type="number" min="1"></div>
+        <div><label>Источник лимитов</label><select id="usage_provider"><option value="codex">Codex</option><option value="claude">Claude (старый мост)</option></select></div>
         <div><label>Лимиты устаревают, мин</label><input id="usage_stale_min" type="number" min="1"></div>
         <div><label>Приглушить без касаний, с (0 — нет)</label><input id="dim_after_s" type="number" min="0"></div>
         <div><label>Погасить без касаний, с (0 — нет)</label><input id="off_after_s" type="number" min="0"></div>
-        <div><label>Экран по умолчанию</label><select id="default_view"><option value="claude">Claude</option><option value="servers">Серверы</option><option value="docker">Docker</option><option value="home">Сводка</option></select></div>
+        <div><label>Экран по умолчанию</label><select id="default_view"><option value="claude">Лимиты ИИ</option><option value="servers">Серверы</option><option value="docker">Docker</option><option value="home">Сводка</option><option value="iss">МКС</option><option value="spaceweather">Космическая погода</option></select></div>
+        <div><label>Разворот экрана</label><select id="rotation"><option value="0">Обычный (0°)</option><option value="180">Перевёрнутый (180°)</option></select></div>
         <div><label>Заставка через, с (0 — нет)</label><input id="saver_after_s" type="number" min="0"></div>
         <div><label>Смена вкладок заставки, с</label><input id="saver_period_s" type="number" min="5"></div>
       </div>
       <label class="check"><input type="checkbox" id="sound"> Звук на плате</label>
     </section>
 
+    <section>
+      <h2>Космические экраны</h2>
+      <label class="check"><input type="checkbox" id="show_iss"> Показывать МКС</label>
+      <label class="check"><input type="checkbox" id="show_spaceweather"> Показывать космическую погоду</label>
+      <div class="row">
+        <div><label>МКС: обновление, с (10–300)</label><input id="iss_interval_s" type="number" min="10" max="300"></div>
+        <div><label>Космическая погода: обновление, мин (5–60)</label><input id="spaceweather_interval_min" type="number" min="5" max="60"></div>
+      </div>
+      <p class="sub">Галочки управляют меню, заставкой и запросами к API. Для расстояния до МКС используются координаты погоды; они не передаются внешним сервисам. Kp — наблюдаемый индекс, не прогноз видимости сияния.</p>
+    </section>
     <section>
       <h2>Яркость</h2>
       <div class="row">
@@ -144,8 +156,8 @@ pre { background: var(--bg); padding: 8px; border-radius: 8px; overflow-x: auto;
 
     <section>
       <h2>Подключение</h2>
-      <p class="sub">Токен для платы и моста Claude Code: <code id="token"></code> <button onclick="regen()">Новый</button></p>
-      <p class="sub">Мост на компьютере с Claude Code:</p>
+      <p class="sub">Токен для платы и моста: <code id="token"></code> <button onclick="regen()">Новый</button></p>
+      <p class="sub">Мост на компьютере с Codex (после установки запустите watch):</p>
       <pre id="bridgeCmd"></pre>
       <p class="sub">Плата: при первом включении поднимает Wi-Fi «CYD-Setup» — подключитесь с телефона и укажите сеть, адрес <code id="hubUrl"></code> и токен.</p>
     </section>
@@ -203,6 +215,7 @@ function draw() {
       <button class="danger" onclick="cfg.commands.splice(${i},1);draw()">×</button></div>`).join("");
   for (const k of ["check_interval", "stats_interval", "fails_to_down", "usage_stale_min"]) $(k).value = cfg[k];
   for (const k of SCREEN_KEYS) $(k).value = cfg.screen[k];
+  for (const k of SPACE_CHECKS) $(k).checked = cfg.screen[k];
   for (const k of DASH_KEYS) $(k).value = cfg.dashboard[k];
   $("wol").innerHTML = cfg.wol.map((w, i) => `
     <div class="cmd" style="grid-template-columns:1fr 160px 1fr auto"><input value="${esc(w.name)}" placeholder="Имя (Компьютер)" oninput="cfg.wol[${i}].name=this.value">
@@ -214,7 +227,8 @@ function draw() {
   $("sound").checked = cfg.screen.sound;
   $("token").textContent = cfg.token;
   $("hubUrl").textContent = location.origin;
-  $("bridgeCmd").textContent = `python bridge/claude_cyd.py install --url ${location.origin} --token ${cfg.token}`;
+  $("usage_provider").value = cfg.usage_provider || "codex";
+  $("bridgeCmd").textContent = `python bridge/${cfg.usage_provider === "claude" ? "claude" : "codex"}_cyd.py install --url ${location.origin} --token ${cfg.token}`;
 }
 // важные контейнеры: что сейчас есть на сервере (из /api/ui) + уже отмеченные
 let live = {};
@@ -245,9 +259,11 @@ function addCmd() {
   draw();
 }
 async function save() {
+  cfg.usage_provider = $("usage_provider").value;
   for (const k of ["check_interval", "stats_interval", "fails_to_down", "usage_stale_min"]) cfg[k] = +$(k).value;
   cfg.screen = { sound: $("sound").checked };
   for (const k of SCREEN_KEYS) cfg.screen[k] = $(k).type === "number" ? +$(k).value : $(k).value;
+  for (const k of SPACE_CHECKS) cfg.screen[k] = $(k).checked;
   cfg.dashboard = {};
   for (const k of DASH_KEYS) cfg.dashboard[k] = $(k).type === "number" ? +$(k).value : $(k).value;
   const r = await fetch("/api/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg) });
@@ -257,8 +273,9 @@ async function save() {
   $("status").textContent = "Сохранено";
   setTimeout(() => $("status").textContent = "", 2500);
 }
-const SCREEN_KEYS = ["dim_after_s", "off_after_s", "default_view", "saver_after_s", "saver_period_s", "servers_view", "tiles_cols",
-  "brightness_mode", "night_level", "night_from", "night_to", "lux_dark", "lux_bright"];
+const SCREEN_KEYS = ["rotation", "dim_after_s", "off_after_s", "default_view", "saver_after_s", "saver_period_s", "servers_view", "tiles_cols",
+  "brightness_mode", "night_level", "night_from", "night_to", "lux_dark", "lux_bright", "iss_interval_s", "spaceweather_interval_min"];
+const SPACE_CHECKS = ["show_iss", "show_spaceweather"];
 const DASH_KEYS = ["city", "lat", "lon", "rates"];
 // без draw(): он перерисовал бы и несохранённые поля ниже
 function pickIcon(i, k, btn) {

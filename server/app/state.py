@@ -26,6 +26,9 @@ SERVER_DEFAULTS = {
 }
 
 SCREEN_DEFAULTS = {
+    "show_iss": True, "show_spaceweather": True,
+    "iss_interval_s": 15, "spaceweather_interval_min": 5,
+    "rotation": 0,  # 0 or 180 degrees; frame and touch rotate together
     "dim_after_s": 0, "off_after_s": 0, "sound": True, "default_view": "claude",
     # яркость: max — всегда максимум, schedule — ночью тусклее, auto — по датчику света платы
     "brightness_mode": "max", "night_from": "23:00", "night_to": "07:00", "night_level": 25,
@@ -53,6 +56,10 @@ FONTS = {
 COLOR_KEYS = ["bg", "panel", "panel2", "line", "text", "dim", "faint", "accent", "green", "yellow", "red", "purple"]
 
 THEMES = {
+    "codex": {"name": "Codex", "font": "Inter", "radius": 10, "colors": {
+        "bg": "#171717", "panel": "#212121", "panel2": "#303030", "line": "#353535", "text": "#ececec",
+        "dim": "#a3a3a3", "faint": "#808080", "accent": "#b4c8ee", "green": "#72c69c", "yellow": "#e6bd72",
+        "red": "#ef7777", "purple": "#b6a3df"}},
     "night": {"name": "Ночь", "font": "Inter", "radius": 9, "colors": {
         "bg": "#0d1016", "panel": "#161b24", "panel2": "#212836", "line": "#2a3242", "text": "#e9ecf3",
         "dim": "#8b94a7", "faint": "#5c6578", "accent": "#5aa2ff", "green": "#3ecf8e", "yellow": "#f5b942",
@@ -123,6 +130,7 @@ class Config:
         d.setdefault("stats_interval", 120)
         d.setdefault("fails_to_down", 2)
         d.setdefault("usage_stale_min", 25)
+        d.setdefault("usage_provider", "codex")
         d.setdefault("theme", {"preset": "night"})
         d.setdefault("wol", [])
         for key, defaults in (("screen", SCREEN_DEFAULTS), ("dashboard", DASH_DEFAULTS)):
@@ -133,6 +141,10 @@ class Config:
             for k, v in SERVER_DEFAULTS.items():
                 s.setdefault(k, v)
             s.setdefault("id", secrets.token_hex(4))
+        for key in ("flights_enabled", "flights_radius_km", "flights_interval_s"):
+            d["dashboard"].pop(key, None)
+        if d["screen"].get("default_view") == "flights":
+            d["screen"]["default_view"] = "claude"
         self.save()
 
     def save(self):
@@ -152,6 +164,14 @@ class Config:
 
     def update(self, new):
         """Принять настройки со страницы. Пустой пароль/ключ = оставить прежний."""
+        if new.get("usage_provider") in ("codex", "claude"):
+            if new["usage_provider"] != self.data.get("usage_provider", "codex"):
+                # A switched provider must not inherit old percentages or sessions.
+                claude.usage = None
+                claude.hist = []
+                claude.sessions.clear()
+                claude.perms.clear()
+            self.data["usage_provider"] = new["usage_provider"]
         old = {s["id"]: s for s in self.data["servers"]}
         servers = []
         for s in new.get("servers", []):
@@ -183,7 +203,13 @@ class Config:
             if key in new:
                 for k, v in new[key].items():
                     if k in defaults:
+                        if key == "screen" and k == "rotation":
+                            self.data[key][k] = 180 if str(v) == "180" else 0
+                            continue
                         self.data[key][k] = type(defaults[k])(v) if not isinstance(defaults[k], bool) else bool(v)
+        sc = self.data["screen"]
+        sc["iss_interval_s"] = max(10, min(300, sc["iss_interval_s"]))
+        sc["spaceweather_interval_min"] = max(5, min(60, sc["spaceweather_interval_min"]))
         if "wol" in new:
             self.data["wol"] = [
                 {"name": w.get("name") or w["mac"], "mac": w["mac"].strip().upper().replace("-", ":"), "via": w.get("via", "")}
@@ -339,14 +365,21 @@ class Claude:
         return True
 
     def set_usage(self, d):
+        provider = d.get("provider", "claude")
+        if provider != config.data.get("usage_provider", "codex"):
+            return False
+        if self.usage and (self.usage.get("provider", "claude"), self.usage.get("limitId")) != (provider, d.get("limitId")):
+            self.hist = []
         self.usage = {k: v for k, v in d.items() if k != "history"}
         self.usage["t"] = time.time() - int(d.get("age", 0))
         if d.get("history"):
             # мост присылает замеры Claude Desktop: [[t, 5ч, неделя], ...]
             self.hist = sorted((float(t), float(a), float(b)) for t, a, b in d["history"])[-2000:]
         point = (self.usage["t"], float(d.get("five", -1)), float(d.get("week", -1)))
-        if point[1] >= 0 and (not self.hist or point[0] > self.hist[-1][0] + 30):
+        if max(point[1:]) >= 0 and (not self.hist or point[0] > self.hist[-1][0] + 30):
             self.hist.append(point)
+        self.hist = self.hist[-2000:]
+        return True
 
     def forecast(self):
         """Когда при нынешнем темпе кончится лимит (unix-время) — или None.
