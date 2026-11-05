@@ -20,3 +20,6 @@ firmware/**/build/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# логи моста
+*.log

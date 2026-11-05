@@ -2,7 +2,7 @@
 
 # CYD Hub
 
-**A desk display on the cheap ESP32 "Cheap Yellow Display": Claude Code sessions, plan limits, servers, Docker and music on one 320×240 screen.**
+**A desk display on the cheap ESP32 "Cheap Yellow Display": Codex and Claude Code plan limits, servers, Docker, the ISS and music on one 320×240 screen.**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 ![ESP32](https://img.shields.io/badge/board-ESP32--2432S028-yellow)
@@ -20,15 +20,16 @@ The board is only a screen and a touch panel. A server in Docker renders a 320×
 
 ## Features
 
-- **Claude Code**: what every session is doing (working / waiting / done), the prompt, recent actions and the answer. The board beeps when a session finishes.
-- **Permission prompts on the screen**: Allow / Deny / Always / Answer in terminal.
-- **Plan limits**: 5-hour and weekly usage, reset times, charts and a "runs out at…" forecast.
+- **Codex plan limits**: 5-hour and weekly usage, reset times, charts and a "runs out at…" forecast, read from the ChatGPT login already used by Codex.
+- **Claude Code** (legacy mode): what every session is doing (working / waiting / done), the prompt, recent actions and the answer. The board beeps when a session finishes.
+- **Permission prompts on the screen** (Claude mode): Allow / Deny / Always / Answer in terminal.
 - **Servers**: ping, TCP, HTTP, CPU/RAM/disk over SSH with 24 h charts, shown as icon tiles or as a detailed list. SSH command buttons.
 - **Docker tab**: the containers you marked as important on every server, failed ones on top; logs, restart and stop from the screen.
 - **Music**: whatever plays on your Windows PC (Yandex Music, browser, Spotify…) with cover art, progress and ⏮ ⏯ ⏭ buttons.
 - **Dashboard**: clock, weather, exchange rates, Wake-on-LAN.
-- **Themes**: 8 presets plus any colors, font and corner radius, all edited live in the browser.
-- **Extras**: alarms with sound and the RGB LED, brightness by schedule or light sensor, screensaver, OTA firmware updates.
+- **ISS and space weather**: position, altitude, speed and distance to you; observed NOAA Kp with a 24 h chart.
+- **Themes**: 9 presets plus any colors, font and corner radius, all edited live in the browser.
+- **Extras**: alarms with sound and the RGB LED, brightness by schedule or light sensor, screensaver, 180° screen rotation, OTA firmware updates.
 
 <img src="docs/images/screens.png" alt="All screens" width="100%">
 
@@ -47,11 +48,14 @@ Open `http://<server>:8770/admin` (user `admin`). The token for the board and th
 
 **Board**: in Arduino IDE 2.x install *esp32 by Espressif* (3.0.7), *LovyanGFX* (1.2.34) and *WiFiManager* (2.0.17). Open `firmware/CYDView/CYDView.ino`, select *ESP32 Dev Module* with Partition Scheme *Minimal SPIFFS (1.9MB APP with OTA)* and upload. On first boot calibrate the touch screen, then join the `CYD-Setup` Wi-Fi from your phone, open `192.168.4.1` and enter your Wi-Fi, the hub URL and the token.
 
-**Bridge** (on the PC with Claude Code):
+**Bridge** (on the PC with Codex):
 
 ```bash
-python bridge/claude_cyd.py install --url http://<server>:8770 --token <token>
+python bridge/codex_cyd.py install --url http://<server>:8770 --token <token>
+python bridge/codex_cyd.py watch
 ```
+
+The legacy Claude Code bridge (sessions, permissions, music) is described in [`bridge/README_CLAUDE.md`](bridge/README_CLAUDE.md); switch the source in `/admin`.
 
 More details (in Russian): [server](server/README.md) · [bridge](bridge/README.md) · [firmware](firmware/CYDView/README.md) · [case](case/README.md)
 
