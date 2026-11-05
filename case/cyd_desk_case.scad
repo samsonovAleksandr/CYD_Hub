@@ -2,16 +2,18 @@
 //  Настольный корпус для ESP32-2432S028 (CYD 2.8") — питание от USB
 //  OpenSCAD 2021+.  part = "front" | "back" | "stand" | "test" | "assembly"
 //
-//  Тонкий корпус (как мини-монитор) + отдельная подставка с наклоном.
+//  Тонкий корпус (как мини-монитор) на подставке с наклоном.
 //  Плата зажата между лицевой панелью и задней крышкой 4 винтами M3x12,
 //  которые идут сзади через стойки и отверстия платы в бобышки панели.
-//  Корпус просто вставляется в подставку (посадка с зазором) и снимается.
+//  По умолчанию задняя крышка и подставка — одна деталь ("body"), стационарно.
+//  Съёмный вариант: "back" + "stand", корпус вставляется в подставку сверху.
 //
 //  Размеры платы — типовые для ESP32-2432S028; перед печатью сверьте их
 //  тестовой рамкой (part = "test").
 // =====================================================================
 
-part = "assembly";
+part = "assembly";   // + "body" — задняя крышка и подставка одной деталью
+one_piece = true;    // сборка показывает цельный корпус (body) или съёмный (back + stand)
 
 // ---------------- ПЛАТА ESP32-2432S028 ---------------------------------
 pcb_l      = 86.0;
@@ -23,18 +25,18 @@ disp_t     = 4.4;    // от лицевой стороны платы до ве�
 back_clear = 7.0;    // место под деталями на обратной стороне платы
 view_l     = 59.0;   // видимая область экрана
 view_w     = 44.5;
-view_off_x = 0.0;
+view_off_x = 3.0;    // смещение окна экрана вправо (если смотреть на экран)
 view_off_y = 0.0;
-// micro-USB — на коротком торце x=0, на обратной стороне платы.
-// Окно рассчитано на литую часть штекера: она заходит в стенку на 1–1,5 мм.
+// micro-USB — на левом коротком торце (x=0), ближе к верху, на обратной
+// стороне платы. Окно рассчитано на литую часть штекера: она заходит в стенку на 1–1,5 мм.
 cyd_usb    = true;
-cyd_usb_y  = 14.0;   // центр разъёма от нижнего длинного края (замерить!)
+cyd_usb_y  = 14.0;   // центр разъёма от верхнего длинного края (замерить!)
 cyd_usb_z  = 1.6;    // центр разъёма ниже платы
 cyd_usb_w  = 13.0;   // окно под штекер (ширина × высота)
 cyd_usb_h  = 9.0;
 // CYD "2USB": рядом с micro-USB есть USB-C на том же торце
 cyd_usbc   = false;
-cyd_usbc_y = 32.0;   // центр USB-C от нижнего длинного края (замерить!)
+cyd_usbc_y = 32.0;   // центр USB-C от верхнего длинного края (замерить!)
 cyd_usbc_w = 13.0;
 cyd_usbc_h = 8.0;
 
@@ -96,7 +98,7 @@ module shell_outline(inset, h) {
 // окно в торце x=0: скруглённое, снаружи с фаской 0,8 мм — штекер легче попадает
 module port_cut(y, w, h) {
   r = 1.5;
-  module plate(dw, x, t) translate([x, clr + y, zp - cyd_usb_z]) rotate([0, 90, 0])
+  module plate(dw, x, t) translate([x, clr + pcb_w - y, zp - cyd_usb_z]) rotate([0, 90, 0])
     linear_extrude(t) offset(r) square([h - 2 * r + dw, w - 2 * r + dw], center = true);
   plate(0, -wall - 1, wall + 2);
   hull() { plate(1.6, -wall - 0.01, 0.01); plate(0, -wall + 0.8, 0.01); }
@@ -191,8 +193,10 @@ module case_volume(extra = 0) {
   case_pose() translate([0, 0, -extra]) shell_outline(-extra, H + 2 * extra);
 }
 
-module stand() {
-  e = stand_fit;
+// fused = true: подставка срастается с задней крышкой (цельный корпус),
+// переднего бортика нет — иначе лицевую панель не поставить.
+module stand(fused = false) {
+  e = fused ? 0 : stand_fit;
   // контуры в координатах корпуса (y=-wall — низ корпуса, z=0 — задняя стенка, z=H — экран)
   x0 = -wall + (OL - stand_w) / 2;
   module back_plate()   translate([x0, -wall - e - seat, -e - lip_t]) cube([stand_w, grip_back + seat, lip_t]);
@@ -209,9 +213,12 @@ module stand() {
     union() {
       hull() { foot(); pose() back_plate(); }
       hull() { foot(); pose() bottom_plate(); }
-      hull() { foot(); pose() front_lip(); }
+      if (!fused) hull() { foot(); pose() front_lip(); }
     }
-    case_volume(e);
+    // цельный: заходим в стенки крышки на 0,2 мм, чтобы детали срослись,
+    // а вокруг лицевой панели оставляем зазор 0,3 мм
+    case_volume(fused ? -0.2 : e);
+    if (fused) case_pose() translate([0, 0, zp + lip - fit]) shell_outline(-0.3, H);
     // вырез сверху, чтобы корпус вставлялся сверху вниз по наклону
     case_pose() translate([-wall - e - 1, -wall + 2, -e]) cube([OL + 2 * e + 2, 200, H + 2 * e]);
     // ровный низ
@@ -222,19 +229,29 @@ module stand() {
   }
 }
 
+// Цельный корпус: задняя крышка + подставка одной деталью, печатается на основании
+module body() {
+  stand(true);
+  case_pose() back_shell();
+}
+
 // ---------------- Макет для сборки -------------------------------------
 module dummy_board() {
   color("royalblue") translate([clr, clr, zp]) cube([pcb_l, pcb_w, pcb_t]);
-  color("black") translate([clr + (pcb_l - 69.2) / 2, clr, zp + pcb_t]) cube([69.2, pcb_w, disp_t - 0.1]);
-  color("deepskyblue") translate([clr + pcb_l / 2 - view_l / 2, clr + pcb_w / 2 - view_w / 2, zp + pcb_t + disp_t - 0.1])
+  color("black") translate([clr + (pcb_l - 69.2) / 2 + view_off_x, clr, zp + pcb_t]) cube([69.2, pcb_w, disp_t - 0.1]);
+  color("deepskyblue") translate([clr + pcb_l / 2 + view_off_x - view_l / 2, clr + pcb_w / 2 + view_off_y - view_w / 2, zp + pcb_t + disp_t - 0.1])
     cube([view_l, view_w, 0.05]);
 }
 
 if (part == "front") translate([0, 0, H]) rotate([180, 0, 0]) front_shell();
 else if (part == "back") back_shell();
 else if (part == "stand") stand();
+else if (part == "body") body();
 else if (part == "test") translate([0, 0, H]) rotate([180, 0, 0]) test_frame();
-else {
+else if (one_piece) {
+  color("dimgray") stand(true);
+  case_pose() { color("dimgray") back_shell(); color("white") front_shell(); dummy_board(); }
+} else {
   color("dimgray") stand();
   case_pose() { color("white") back_shell(); color("white") front_shell(); dummy_board(); }
 }
