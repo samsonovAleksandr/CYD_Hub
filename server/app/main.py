@@ -409,12 +409,16 @@ def root():
 
 @app.get("/screen")
 def screen_page():
-    return FileResponse(os.path.join(STATIC, "screen.html"))
+    return FileResponse(os.path.join(STATIC, "screen.html"), headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+    })
 
 
 @app.get("/admin", dependencies=[Depends(admin_ok)])
 def admin_page():
-    return FileResponse(os.path.join(STATIC, "admin.html"))
+    return FileResponse(os.path.join(STATIC, "admin.html"), headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+    })
 
 
 @app.get("/static/{name}")
@@ -422,7 +426,9 @@ def static(name: str):
     path = os.path.join(STATIC, os.path.basename(name))
     if not os.path.exists(path):
         raise HTTPException(404)
-    return FileResponse(path)
+    return FileResponse(path, headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+    })
 
 
 # ---- фон: мониторинг, светодиод, звуки ----------------------------------------------------
