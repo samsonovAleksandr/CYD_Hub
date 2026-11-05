@@ -1,0 +1,11 @@
+ESP32 2432S028 CYD case
+Author: ghfisanotti (Thingiverse)
+Source: https://www.thingiverse.com/thing:7047135
+
+This thing was created by Thingiverse user ghfisanotti, and is licensed
+under Creative Commons - Attribution - Share Alike (CC BY-SA 4.0).
+https://creativecommons.org/licenses/by-sa/4.0/
+
+The case files in this directory (STL, FreeCAD sources, renders and photos)
+are distributed under CC BY-SA 4.0. The rest of the CYD Hub repository is
+licensed under the MIT License, see ../LICENSE.

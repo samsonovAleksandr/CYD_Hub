@@ -29,6 +29,7 @@ The board is only a screen and a touch panel. A server in Docker renders a 320×
 - **Dashboard**: clock, weather, exchange rates, Wake-on-LAN.
 - **ISS and space weather**: position, altitude, speed and distance to you; observed NOAA Kp with a 24 h chart.
 - **Themes**: 9 presets plus any colors, font and corner radius, all edited live in the browser.
+- **Case**: a printable CYD case by [ghfisanotti](https://www.thingiverse.com/thing:7047135) (CC BY-SA) with a flat or 30° base and a lid; STL, FreeCAD sources and photos in [case/](case).
 - **Extras**: alarms with sound and the RGB LED, brightness by schedule or light sensor, screensaver, 180° screen rotation, OTA firmware updates.
 
 <img src="docs/images/screens.png" alt="All CYD Hub screens" width="100%">

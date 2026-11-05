@@ -56,7 +56,7 @@
 - **Плата ESP32-2432S028** («Cheap Yellow Display», CYD) — 2.8" 320×240 с тачем, продаётся на AliExpress примерно за 10 $. Подходят обе версии: с одним micro-USB и с micro-USB + USB-C (для второй включите `PANEL_ST7789` в `config.h`).
 - **Машина для сервера** с Docker: домашний сервер, NAS, Raspberry Pi 4/5, любой VPS в той же сети, что и плата.
 - **Компьютер с Codex** — для лимитов подписки (по умолчанию). По желанию можно вместо него использовать Claude Code: сессии, разрешения, лимиты и музыка.
-- **3D-принтер** (по желанию) — настольный корпус с подставкой лежит в [`case/`](case).
+- **3D-принтер** (по желанию) — готовый корпус для CYD от [ghfisanotti](https://www.thingiverse.com/ghfisanotti) (Thingiverse, CC BY-SA) лежит в [`case/`](case): плоское или наклонное основание и крышка.
 
 ## Установка
 
@@ -128,7 +128,7 @@ flowchart LR
 | [`server/app/static/screen.html`](server/app/static/screen.html) | Весь интерфейс платы — HTML, CSS и JS. Правите здесь — меняется экран |
 | [`firmware/CYDView/`](firmware/CYDView) | Тонкая прошивка: показывает кадры, шлёт касания, светодиод, звук, яркость, OTA |
 | [`bridge/`](bridge) | Мосты для компьютера: лимиты Codex (основной) и Claude Code с музыкой (старый режим). Только стандартная библиотека Python (кроме музыки) |
-| [`case/`](case) | Настольный корпус с подставкой (OpenSCAD + STL) |
+| [`case/`](case) | Корпус для CYD: STL, исходники FreeCAD и фото. Автор — [ghfisanotti](https://www.thingiverse.com/thing:7047135), CC BY-SA |
 
 ## Безопасность
 
