@@ -10,7 +10,7 @@
 
 [Русский](README.md)
 
-<img src="docs/images/hero.png" alt="CYD Hub screens" width="100%">
+<img src="docs/images/hero.png" alt="CYD Hub screens: Codex limits, servers and the ISS" width="100%">
 
 </div>
 
@@ -31,7 +31,7 @@ The board is only a screen and a touch panel. A server in Docker renders a 320×
 - **Themes**: 9 presets plus any colors, font and corner radius, all edited live in the browser.
 - **Extras**: alarms with sound and the RGB LED, brightness by schedule or light sensor, screensaver, 180° screen rotation, OTA firmware updates.
 
-<img src="docs/images/screens.png" alt="All screens" width="100%">
+<img src="docs/images/screens.png" alt="All CYD Hub screens" width="100%">
 
 ## Quick start
 

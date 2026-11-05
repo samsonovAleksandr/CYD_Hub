@@ -12,7 +12,7 @@
 
 [English](README.en.md) · [Возможности](#возможности) · [Установка](#установка) · [Как устроено](#как-устроено) · [Развитие](#развитие)
 
-<img src="docs/images/hero.png" alt="Экраны CYD Hub: Claude, серверы, музыка" width="100%">
+<img src="docs/images/hero.png" alt="Экраны CYD Hub: лимиты Codex, серверы, МКС" width="100%">
 
 </div>
 
@@ -36,13 +36,13 @@
 <details open>
 <summary><b>Все экраны</b></summary>
 <br>
-<img src="docs/images/screens.png" alt="Все экраны CYD Hub" width="100%">
+<img src="docs/images/screens.png" alt="Все экраны CYD Hub: Codex, серверы, Docker, сводка, музыка, МКС, космическая погода" width="100%">
 </details>
 
 <details>
 <summary><b>Темы</b></summary>
 <br>
-<img src="docs/images/themes.png" alt="Темы: Claude Code, Pixel Art, Synthwave, Бумага, Матрица, Star Wars" width="100%">
+<img src="docs/images/themes.png" alt="Темы: Codex, Ночь, Claude Code, Pixel Art, Star Wars, Матрица, Synthwave, Бумага, Nord" width="100%">
 </details>
 
 <details>
