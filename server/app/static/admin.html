@@ -101,7 +101,7 @@ pre { background: var(--bg); padding: 8px; border-radius: 8px; overflow-x: auto;
         <div><label>Лимиты устаревают, мин</label><input id="usage_stale_min" type="number" min="1"></div>
         <div><label>Приглушить без касаний, с (0 — нет)</label><input id="dim_after_s" type="number" min="0"></div>
         <div><label>Погасить без касаний, с (0 — нет)</label><input id="off_after_s" type="number" min="0"></div>
-        <div><label>Экран по умолчанию</label><select id="default_view"><option value="claude">Лимиты ИИ</option><option value="servers">Серверы</option><option value="docker">Docker</option><option value="home">Сводка</option><option value="iss">МКС</option><option value="spaceweather">Космическая погода</option></select></div>
+        <div><label>Экран по умолчанию</label><select id="default_view"><option value="claude">Лимиты ИИ</option><option value="servers">Серверы</option><option value="docker">Docker</option><option value="home">Сводка</option><option value="iss">МКС</option><option value="spaceweather">Космическая погода</option><option value="weeek">Задачи Weeek</option></select></div>
         <div><label>Разворот экрана</label><select id="rotation"><option value="0">Обычный (0°)</option><option value="180">Перевёрнутый (180°)</option></select></div>
         <div><label>Заставка через, с (0 — нет)</label><input id="saver_after_s" type="number" min="0"></div>
         <div><label>Смена вкладок заставки, с</label><input id="saver_period_s" type="number" min="5"></div>
@@ -145,6 +145,18 @@ pre { background: var(--bg); padding: 8px; border-radius: 8px; overflow-x: auto;
       <div class="sub" style="margin-bottom:6px">Кнопки «включить» на вкладке «Сводка». Пакет отправляется с выбранного сервера по SSH (он должен быть в той же сети).</div>
       <div id="wol"></div>
       <button onclick="cfg.wol.push({name:'',mac:'',via:''});draw()">+ Устройство</button>
+    </section>
+
+    <section>
+      <h2>Weeek: задачи и встречи</h2>
+      <div class="sub">Токен создаётся в Weeek → «Настройки пространства» → API. Встречи — это задачи типа «встреча» / «звонок», они показываются отдельно сверху.</div>
+      <label class="check"><input type="checkbox" id="weeek_enabled" onchange="drawWeeek()"> Включить вкладку «Задачи» на экране</label>
+      <div class="row" id="weeek_fields" style="display:none">
+        <div><label>Токен</label><input id="weeek_token" type="password" autocomplete="new-password" placeholder="Bearer-токен"></div>
+        <div><label>Обновлять, с</label><input id="weeek_refresh" type="number" min="30" max="3600" value="120"></div>
+        <div><label>Дней вперёд</label><input id="weeek_days" type="number" min="1" max="30" value="7"></div>
+      </div>
+      <button class="primary" style="width:auto" onclick="testWeeek()">Проверить токен</button> <span id="weeek_test" class="sub" style="margin-left:8px"></span>
     </section>
 
     <section>
@@ -222,6 +234,11 @@ function draw() {
       <input value="${esc(w.mac)}" placeholder="AA:BB:CC:DD:EE:FF" oninput="cfg.wol[${i}].mac=this.value" style="font-family:monospace">
       <select onchange="cfg.wol[${i}].via=this.value"><option value="">через первый сервер с SSH</option>${cfg.servers.map(s => `<option value="${s.id}" ${s.id === w.via ? "selected" : ""}>через ${esc(s.name)}</option>`).join("")}</select>
       <button class="danger" onclick="cfg.wol.splice(${i},1);draw()">×</button></div>`).join("");
+  $("weeek_enabled").checked = !!cfg.weeek?.enabled;
+  $("weeek_token").value = cfg.weeek?.token || "";
+  $("weeek_refresh").value = cfg.weeek?.refresh_s ?? 120;
+  $("weeek_days").value = cfg.weeek?.days ?? 7;
+  drawWeeek();
   drawBright();
   drawTiles();
   $("sound").checked = cfg.screen.sound;
@@ -266,12 +283,29 @@ async function save() {
   for (const k of SPACE_CHECKS) cfg.screen[k] = $(k).checked;
   cfg.dashboard = {};
   for (const k of DASH_KEYS) cfg.dashboard[k] = $(k).type === "number" ? +$(k).value : $(k).value;
+  cfg.weeek = { enabled: $("weeek_enabled").checked };
+  if ($("weeek_token").value.trim()) cfg.weeek.token = $("weeek_token").value.trim();
+  if ($("weeek_refresh").value.trim()) cfg.weeek.refresh_s = +$("weeek_refresh").value;
+  if ($("weeek_days").value.trim()) cfg.weeek.days = +$("weeek_days").value;
   const r = await fetch("/api/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg) });
   if (!r.ok) { $("status").textContent = "Ошибка: " + r.status; return; }
   cfg = await r.json();
   draw();
   $("status").textContent = "Сохранено";
   setTimeout(() => $("status").textContent = "", 2500);
+}
+function drawWeeek() {
+  const on = $("weeek_enabled").checked;
+  document.getElementById("weeek_fields").style.display = on ? "" : "none";
+}
+async function testWeeek() {
+  const token = $("weeek_token").value.trim() || (cfg.weeek && cfg.weeek.token);
+  const r = await fetch("/api/weeek/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
+  const j = await r.json();
+  const el = $("weeek_test");
+  el.style.color = j.ok ? "var(--green)" : "var(--red)";
+  el.textContent = j.ok ? `OK: ${j.user} · ${j.tasks} активных задач` : `Ошибка: ${j.err}`;
+  setTimeout(() => el.textContent = "", 5000);
 }
 const SCREEN_KEYS = ["rotation", "dim_after_s", "off_after_s", "default_view", "saver_after_s", "saver_period_s", "servers_view", "tiles_cols",
   "brightness_mode", "night_level", "night_from", "night_to", "lux_dark", "lux_bright", "iss_interval_s", "spaceweather_interval_min"];

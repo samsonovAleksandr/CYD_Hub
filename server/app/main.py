@@ -18,7 +18,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-from . import extras, monitor, space
+from . import extras, monitor, space, weeek
 from .render import Screen
 from .state import DATA, FONTS, THEMES, claude, config, new_token, resolve_theme, signals
 
@@ -290,6 +290,7 @@ def ui():
         "space_screens": {key: config.data["screen"][key] for key in ("show_iss", "show_spaceweather", "iss_interval_s")},
         "wol": [{"name": w["name"]} for w in config.data["wol"]],
         "saver": {"after": config.data["screen"]["saver_after_s"], "period": config.data["screen"]["saver_period_s"]},
+        "weeek": weeek.public(),
     }
 
 
@@ -325,6 +326,8 @@ async def act(req: Request):
         if srv:
             monitor.forget_host_key(srv)
             monitor.check_now()
+    elif a == "weeek_complete":
+        asyncio.create_task(weeek.complete(d["id"]))
     screen.kick.set()
     return {}
 
@@ -357,6 +360,19 @@ async def put_theme(req: Request):
     config.set_theme(await req.json())
     screen.kick.set()
     return config.data["theme"]
+
+
+@app.get("/api/weeek/test", dependencies=[Depends(admin_ok)])
+async def weeek_test():
+    """Проверка токена Weeek (кто я, сколько активных задач)."""
+    return await weeek.test()
+
+
+@app.post("/api/weeek/test", dependencies=[Depends(admin_ok)])
+async def weeek_test_post(req: Request):
+    """Проверка токена из поля ввода /admin без перезагрузки настроек."""
+    d = await req.json()
+    return await weeek.test(d.get("token"))
 
 
 @app.post("/api/token", dependencies=[Depends(admin_ok)])
@@ -429,6 +445,7 @@ async def startup():
     asyncio.create_task(signal_loop())
     asyncio.create_task(extras.loop())
     asyncio.create_task(space.loop())
+    asyncio.create_task(weeek.loop())
     # браузер стартует после того, как uvicorn начнёт отвечать
     async def later():
         await asyncio.sleep(1)

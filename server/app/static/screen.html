@@ -324,6 +324,14 @@ button:focus-visible, [role="button"]:focus-visible { outline:2px solid var(--ac
 .kp-chart { padding:5px 7px; border:1px solid var(--line); background:var(--panel); border-radius:8px; }
 .kp-chart svg { width:100%; height:51px; display:block; }
 .kp-chart small { color:var(--dim); font-size:9px; }
+/* Weeek */
+.we-task { cursor: pointer; border-left: 3px solid var(--panel2); }
+.we-task.red { border-left-color: var(--red); }
+.we-task.yellow { border-left-color: var(--yellow); }
+.we-task .icon { font-size: 12px; }
+.we-task.working .icon { color: var(--blue); animation: spin .8s linear infinite; }
+.we-meeting .icon { font-size: 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -390,7 +398,7 @@ const backBar = (title, right = "") => `<div class="top"><button class="back" on
 
 function navigationMenu() {
   if (!view.menu) return '';
-  return `<nav class="codex-nav" aria-label="Разделы"><div class="nav-list" data-scroll="menu">${[['claude',data.usage_provider === 'claude' ? 'Claude' : 'Codex'],['servers','Серверы'],['docker','Docker'],['home','Сводка'],['music','Музыка'],['usage','Графики'],...spaceTabs()].map(([name,label]) => `<button onclick="go({name:'${name}',back:{name:'claude'}})">${label}</button>`).join('')}</div><div class="nav-pager"><button aria-label="Меню вверх" onclick="scrollMenu(-1)">↑</button><button aria-label="Меню вниз" onclick="scrollMenu(1)">↓</button></div></nav>`;
+  return `<nav class="codex-nav" aria-label="Разделы"><div class="nav-list" data-scroll="menu">${[['claude',data.usage_provider === 'claude' ? 'Claude' : 'Codex'],['servers','Серверы'],['docker','Docker'],['home','Сводка'],['music','Музыка'],['weeek','Задачи'],['usage','Графики'],...spaceTabs()].map(([name,label]) => `<button onclick="go({name:'${name}',back:{name:'claude'}})">${label}</button>`).join('')}</div><div class="nav-pager"><button aria-label="Меню вверх" onclick="scrollMenu(-1)">↑</button><button aria-label="Меню вниз" onclick="scrollMenu(1)">↓</button></div></nav>`;
 }
 function spaceTabs() {
   return [['iss','МКС','show_iss'],['spaceweather','Космос','show_spaceweather']]
@@ -746,6 +754,47 @@ function spaceweatherView() {
   return h + spaceSource('NOAA SWPC', s, stale) + '</div>';
 }
 
+// ---- Weeek: задачи и встречи (встречи — задачи типа meet/call) ----
+function weIcon(kind) {
+  return kind === 'meet' ? '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7l0 5 M9 12l3 3 3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' : '<path d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z"/><polyline points="12 6 12 12 16 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+}
+function weeekView() {
+  const w = data.weeek || {};
+  if (!w.enabled) {
+    return tabs() + `<div class="body" data-scroll="weeek"><div class="empty"><b>Weeek не подключён</b><div class="sub">Включите в /admin → Weeek и вставьте токен из настроек рабочего пространства.</div></div></div>`;
+  }
+  const meetings = (w.meetings || []).filter(m => m.ts);
+  const now = new Date(), todayStr = now.toDateString();
+  const todayMeetings = meetings.filter(m => new Date(m.ts * 1000).toDateString() === todayStr);
+  let h = tabs() + `<div class="body" data-scroll="weeek">`;
+  if (todayMeetings.length) {
+    h += `<div class="sec">Встречи сегодня</div>`;
+    todayMeetings.forEach(m => {
+      const t = new Date(m.ts * 1000).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+      h += `<div class="card we-meeting"><div class="icon" style="background:var(--purple);color:var(--bg)">${weIcon('meet')}</div><div class="main"><div class="name">${esc(m.title)}${m.project ? ' · ' + esc(m.project) : ''}</div><div class="sub">${t}${m.has_time ? '' : ' · весь день'}</div></div></div>`;
+    });
+  }
+  const tasks = w.tasks || [];
+  if (!tasks.length && !todayMeetings.length) {
+    return h + `<div class="empty"><b>Задач нет</b>${w.err ? '<div class="sub">' + esc(w.err) + '</div>' : ''}</div></div>`;
+  }
+  const labels = { overdue: 'Просрочено', today: 'Сегодня', none: 'Без даты', later: 'Позже' };
+  const colors = { overdue: 'red', today: 'yellow', later: 'dim', none: 'faint' };
+  [...new Set(tasks.map(t => t.bucket))].forEach(b => {
+    const grp = tasks.filter(t => t.bucket === b);
+    h += `<div class="sec">${labels[b]}${grp.length > 0 ? ' (' + grp.length + ')' : ''}</div>`;
+    grp.forEach(t => {
+      const prio = t.prio >= 2 ? 'working' : (t.day ? 'done' : 'idle');
+      h += `<div class="card we-task ${colors[b]}"><div class="icon ${prio}">${t.prio >= 2 ? '!' : (t.day ? '•' : '○')}</div><div class="main"><div class="name">${esc(t.title)}${t.project ? ' · ' + esc(t.project) : ''}</div>`;
+      if (t.has_time) h += `<div class="sub">${new Date(t.ts * 1000).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</div>`;
+      else if (t.day) h += `<div class="sub">${t.day}</div>`;
+      h += `</div><div class="btn ok small" onclick="event.stopPropagation(); act({a:'weeek_complete',id:${t.id}})">✓</div></div>`;
+    });
+  });
+  h += `<div class="space-source">Weeek ${w.badge ? '· ' + w.badge + ' сегодня' : ''} <span class="faint">${w.err ? 'ошибка: ' + esc(w.err) : ago(w.t || data.now) + ' назад'}</span></div></div>`;
+  return h;
+}
+
 // ---- сводка: часы, погода, курсы, включение компьютеров ----
 const WX = {
   sun: '<circle cx="12" cy="12" r="5" fill="var(--yellow)"/><g stroke="var(--yellow)" stroke-width="2">' + [0, 45, 90, 135, 180, 225, 270, 315].map(a => `<line x1="12" y1="2" x2="12" y2="4.5" transform="rotate(${a} 12 12)"/>`).join("") + "</g>",
@@ -821,7 +870,7 @@ function render(force) {
   if (data.perms.length) h = permView(data.perms[0]);
   else h = ({ claude: claudeView, servers: serversView, session: sessionView, server: serverView, output: outputView,
               usage: usageView, containers: containersView, container: containerView, home: homeView, docker: dockerView, music: musicView,
-              iss: issView, spaceweather: spaceweatherView }[view.name] || claudeView)();
+              iss: issView, spaceweather: spaceweatherView, weeek: weeekView }[view.name] || claudeView)();
   if (data.alert.active && !data.perms.length) {
     h += `<div class="alert">⚠ ${esc(data.alert.text)}<div class="btn" onclick='act({a:"ack"})'>Понятно</div></div>`;
   }

@@ -39,6 +39,7 @@ SCREEN_DEFAULTS = {
     "servers_view": "tiles", "tiles_cols": 0,     # 0 — подобрать, чтобы все влезли
 }
 DASH_DEFAULTS = {"city": "Москва", "lat": 55.7558, "lon": 37.6173, "rates": "USD,EUR,CNY"}
+WEEEEK_DEFAULTS = {"enabled": False, "token": "", "refresh_s": 120, "days": 7}
 
 
 # ---- темы экрана -------------------------------------------------------------
@@ -133,7 +134,7 @@ class Config:
         d.setdefault("usage_provider", "codex")
         d.setdefault("theme", {"preset": "night"})
         d.setdefault("wol", [])
-        for key, defaults in (("screen", SCREEN_DEFAULTS), ("dashboard", DASH_DEFAULTS)):
+        for key, defaults in (("screen", SCREEN_DEFAULTS), ("dashboard", DASH_DEFAULTS), ("weeek", WEEEEK_DEFAULTS)):
             d.setdefault(key, {})
             for k, v in defaults.items():
                 d[key].setdefault(k, v)
@@ -160,6 +161,8 @@ class Config:
         for s in d["servers"]:
             s["ssh_password_set"] = bool(s.pop("ssh_password", ""))
             s["ssh_key_set"] = bool(s.pop("ssh_key", ""))
+        w = d.setdefault("weeek", {})
+        w["token_set"] = bool(w.pop("token", ""))
         return d
 
     def update(self, new):
@@ -207,6 +210,20 @@ class Config:
                             self.data[key][k] = 180 if str(v) == "180" else 0
                             continue
                         self.data[key][k] = type(defaults[k])(v) if not isinstance(defaults[k], bool) else bool(v)
+        if "weeek" in new:
+            w = self.data.setdefault("weeek", dict(WEEEEK_DEFAULTS))
+            src = new.get("weeek") or {}
+            if "enabled" in src:
+                w["enabled"] = bool(src["enabled"])
+            if src.get("token_clear"):
+                w["token"] = ""
+            elif str(src.get("token") or "").strip():
+                w["token"] = str(src["token"]).strip()[:300]
+            try:
+                w["refresh_s"] = max(30, min(3600, int(src.get("refresh_s", w["refresh_s"]))))
+                w["days"] = max(1, min(30, int(src.get("days", w["days"]))))
+            except (TypeError, ValueError):
+                pass
         sc = self.data["screen"]
         sc["iss_interval_s"] = max(10, min(300, sc["iss_interval_s"]))
         sc["spaceweather_interval_min"] = max(5, min(60, sc["spaceweather_interval_min"]))
