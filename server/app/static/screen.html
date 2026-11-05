@@ -12,9 +12,12 @@
   --blue: var(--accent); --radius: 9px; --r-small: min(var(--radius), 6px);
   --font: Inter, "DejaVu Sans", sans-serif;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; outline: none; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent !important; outline: none !important; user-select: none; }
 html, body { width: 320px; height: 240px; overflow: hidden; background: var(--bg); color: var(--text);
   font: 12px/1.3 var(--font); -webkit-font-smoothing: antialiased; touch-action: manipulation; }
+button, .btn, .tab, .card, [onclick], .icon, .back, .top button { -webkit-tap-highlight-color: transparent !important; touch-action: manipulation; }
+button:active, .btn:active, .tab:active, .card:active, [onclick]:active { -webkit-tap-highlight-color: transparent !important; touch-action: manipulation; }
+button:focus, button:focus-visible, .btn:focus { outline: none !important; box-shadow: none !important; }
 #app { position: relative; width: 320px; height: 240px; }
 .dim { color: var(--dim); } .faint { color: var(--faint); }
 .green { color: var(--green); } .yellow { color: var(--yellow); } .red { color: var(--red); }
